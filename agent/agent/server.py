@@ -28,7 +28,6 @@ _load_env_files()
 
 from .agent import agentic_chat_router
 from .agent import _get_composio_client
-from composio.client import Action  # type: ignore
 
 app = FastAPI()
 
@@ -145,7 +144,7 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
         return spreadsheet_id
     entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
     created = entity.execute(
-        action=Action.GOOGLESHEETS_CREATE_GOOGLE_SHEET1,
+        action="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
         params={"title": title},
     )
     spreadsheet_id = (
@@ -164,7 +163,7 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
     try:
         entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
         found = entity.execute(
-            action=Action.GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE,
+            action="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
             params={"spreadsheetId": spreadsheet_id, "title": sheet_title},
         )
         ok = True
@@ -175,7 +174,7 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
     except Exception:
         entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
         entity.execute(
-            action=Action.GOOGLESHEETS_ADD_SHEET,
+            action="GOOGLESHEETS_ADD_SHEET",
             params={"spreadsheetId": spreadsheet_id, "title": sheet_title},
         )
 
@@ -185,19 +184,19 @@ def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: 
     try:
         entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
         entity.execute(
-            action=Action.GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR,
+            action="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
             params={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]},
         )
     except Exception:
         entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
         entity.execute(
-            action=Action.GOOGLESHEETS_CLEAR_VALUES,
+            action="GOOGLESHEETS_CLEAR_VALUES",
             params={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"},
         )
     # Append rows starting at A1
     entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
     entity.execute(
-        action=Action.GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND,
+        action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
         params={
             "spreadsheetId": spreadsheet_id,
             "range": f"{sheet_title}!A1",
