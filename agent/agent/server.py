@@ -58,7 +58,7 @@ def composio_connect_google_sheets():
         composio, user_id = _get_composio_client()
         # If already connected, short-circuit
         try:
-            conns = composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+            conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
             # Basic heuristic: if any account exists for Googlesheets, consider connected
             if conns and isinstance(conns, (list, tuple)) and len(conns) > 0:
                 return {"alreadyConnected": True}
@@ -69,7 +69,6 @@ def composio_connect_google_sheets():
         req = composio.connected_accounts.initiate(  # type: ignore[attr-defined]
             user_id=user_id,
             auth_config_id=auth_config_id,
-            redirect_url=os.getenv("COMPOSIO_POST_CONNECT_REDIRECT", "http://localhost:3000"),
         )
 
         # Try several shapes to find a URL
@@ -112,7 +111,7 @@ def composio_connect_google_sheets():
 def composio_status_google_sheets():
     try:
         composio, user_id = _get_composio_client()
-        conns = composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+        conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
         connected = bool(conns and isinstance(conns, (list, tuple)) and len(conns) > 0)
         return {"connected": connected, "count": len(conns) if isinstance(conns, (list, tuple)) else 0}
     except Exception as e:
