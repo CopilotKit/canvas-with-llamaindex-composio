@@ -27,7 +27,6 @@ def _load_env_files() -> None:
 _load_env_files()
 
 from .agent import agentic_chat_router
-from .agent import _get_composio_client
 
 app = FastAPI()
 
@@ -56,7 +55,7 @@ def composio_connect_google_sheets():
         raise HTTPException(status_code=400, detail="Missing COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID env var.")
 
     try:
-        composio, user_id = _get_composio_client()
+        composio, user_id = _get_api_client()
         # If already connected, short-circuit
         try:
             conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
@@ -111,7 +110,7 @@ def composio_connect_google_sheets():
 @app.get("/composio/status/googlesheets")
 def composio_status_google_sheets():
     try:
-        composio, user_id = _get_composio_client()
+        composio, user_id = _get_api_client()
         conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
         connected = bool(conns and isinstance(conns, (list, tuple)) and len(conns) > 0)
         return {"connected": connected, "count": len(conns) if isinstance(conns, (list, tuple)) else 0}
@@ -137,14 +136,27 @@ def _save_gs_meta(meta: dict) -> None:
         pass
 
 
+def _get_api_client():
+    """Return Composio API client (non-provider) and user id."""
+    try:
+        from composio import Composio as ComposioApi  # type: ignore
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Composio SDK not installed: {e}")
+    api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Missing COMPOSIO_API_KEY")
+    user_id = os.getenv("COMPOSIO_USER_ID", "default")
+    return ComposioApi(api_key=api_key), user_id
+
+
 def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     meta = _load_gs_meta()
     spreadsheet_id = meta.get("spreadsheetId")
     if spreadsheet_id:
         return spreadsheet_id
-    entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
-    created = entity.execute(
-        action="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+    created = composio.actions.execute(  # type: ignore[attr-defined]
+        user_id=user_id,
+        action_name="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
         params={"title": title},
     )
     spreadsheet_id = (
@@ -161,9 +173,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
 
 def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str) -> None:
     try:
-        entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
-        found = entity.execute(
-            action="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+        found = composio.actions.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            action_name="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
             params={"spreadsheetId": spreadsheet_id, "title": sheet_title},
         )
         ok = True
@@ -172,9 +184,9 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
         if not ok:
             raise RuntimeError("not found")
     except Exception:
-        entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
-        entity.execute(
-            action="GOOGLESHEETS_ADD_SHEET",
+        composio.actions.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            action_name="GOOGLESHEETS_ADD_SHEET",
             params={"spreadsheetId": spreadsheet_id, "title": sheet_title},
         )
 
@@ -182,21 +194,21 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
 def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: str, rows: list[list[str]]) -> None:
     # Clear
     try:
-        entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
-        entity.execute(
-            action="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+        composio.actions.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            action_name="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
             params={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]},
         )
     except Exception:
-        entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
-        entity.execute(
-            action="GOOGLESHEETS_CLEAR_VALUES",
+        composio.actions.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            action_name="GOOGLESHEETS_CLEAR_VALUES",
             params={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"},
         )
     # Append rows starting at A1
-    entity = composio.get_entity(user_id)  # type: ignore[attr-defined]
-    entity.execute(
-        action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    composio.actions.execute(  # type: ignore[attr-defined]
+        user_id=user_id,
+        action_name="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
         params={
             "spreadsheetId": spreadsheet_id,
             "range": f"{sheet_title}!A1",
@@ -216,7 +228,7 @@ def composio_sync_google_sheets(
     Will create spreadsheet if missing and reuse it; ensures a 'Canvas' sheet by default.
     """
     try:
-        composio, user_id = _get_composio_client()
+        composio, user_id = _get_api_client()
 
         title = os.getenv("COMPOSIO_SHEETS_TITLE", "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
         sheet_title = os.getenv("COMPOSIO_SHEETS_SHEET", "Canvas").strip() or "Canvas"
