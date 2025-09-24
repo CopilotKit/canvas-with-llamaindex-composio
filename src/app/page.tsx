@@ -61,6 +61,24 @@ export default function CopilotKitPage() {
     console.log("[CoAgent state updated]", state);
   }, [state]);
 
+  // Debounced Google Sheets sync when state changes
+  useEffect(() => {
+    const snapshot = (viewState ?? initialState) as AgentState;
+    const payload = {
+      items: snapshot.items ?? [],
+      globalTitle: snapshot.globalTitle ?? "",
+      globalDescription: snapshot.globalDescription ?? "",
+    };
+    const t = setTimeout(() => {
+      fetch("http://127.0.0.1:9000/composio/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch((e) => console.error("/composio/sync error", e));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [viewState]);
+
   // Reset JSON view when there are no items
   useEffect(() => {
     const itemsCount = (viewState?.items ?? []).length;

@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 import os
+import json
 
 # Load environment variables from .env/.env.local (repo root or agent dir) if present
 try:
@@ -116,3 +117,137 @@ def composio_status_google_sheets():
         return {"connected": connected, "count": len(conns) if isinstance(conns, (list, tuple)) else 0}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to query connection status: {e}")
+
+
+# --- Minimal persistence for spreadsheet metadata (file-based) ---
+GS_META_FILE = (Path(__file__).resolve().parents[1] / ".gs_meta.json")
+
+def _load_gs_meta() -> dict:
+    try:
+        if GS_META_FILE.exists():
+            return json.loads(GS_META_FILE.read_text())
+    except Exception:
+        pass
+    return {}
+
+def _save_gs_meta(meta: dict) -> None:
+    try:
+        GS_META_FILE.write_text(json.dumps(meta, ensure_ascii=False))
+    except Exception:
+        pass
+
+
+def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
+    meta = _load_gs_meta()
+    spreadsheet_id = meta.get("spreadsheetId")
+    if spreadsheet_id:
+        return spreadsheet_id
+    created = composio.tools.execute(  # type: ignore[attr-defined]
+        user_id=user_id,
+        tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+        parameters={"title": title},
+    )
+    spreadsheet_id = (
+        (created.get("response_data", {}) or {}).get("spreadsheetId")
+        or (created.get("data", {}) or {}).get("spreadsheetId")
+        or created.get("spreadsheetId")
+    )
+    if not spreadsheet_id:
+        raise RuntimeError("Unable to create spreadsheet (no id returned)")
+    meta["spreadsheetId"] = spreadsheet_id
+    _save_gs_meta(meta)
+    return spreadsheet_id
+
+
+def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str) -> None:
+    try:
+        found = composio.tools.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            tool="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+            parameters={"spreadsheetId": spreadsheet_id, "title": sheet_title},
+        )
+        ok = True
+        if isinstance(found, dict):
+            ok = bool((found.get("response_data", {}) or {}).get("found", True) or (found.get("data", {}) or {}).get("found", True))
+        if not ok:
+            raise RuntimeError("not found")
+    except Exception:
+        composio.tools.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            tool="GOOGLESHEETS_ADD_SHEET",
+            parameters={"spreadsheetId": spreadsheet_id, "title": sheet_title},
+        )
+
+
+def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: str, rows: list[list[str]]) -> None:
+    # Clear
+    try:
+        composio.tools.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            tool="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+            parameters={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]},
+        )
+    except Exception:
+        composio.tools.execute(  # type: ignore[attr-defined]
+            user_id=user_id,
+            tool="GOOGLESHEETS_CLEAR_VALUES",
+            parameters={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"},
+        )
+    # Append rows starting at A1
+    composio.tools.execute(  # type: ignore[attr-defined]
+        user_id=user_id,
+        tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+        parameters={
+            "spreadsheetId": spreadsheet_id,
+            "range": f"{sheet_title}!A1",
+            "valueInputOption": "RAW",
+            "values": rows,
+        },
+    )
+
+
+@app.post("/composio/sync")
+def composio_sync_google_sheets(
+    payload: dict = Body(...),
+):
+    """Sync the provided canvas snapshot to Google Sheets.
+
+    Expected payload shape: { items: Item[], globalTitle?: str, globalDescription?: str }
+    Will create spreadsheet if missing and reuse it; ensures a 'Canvas' sheet by default.
+    """
+    try:
+        composio, user_id = _get_composio_client()
+
+        title = os.getenv("COMPOSIO_SHEETS_TITLE", "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
+        sheet_title = os.getenv("COMPOSIO_SHEETS_SHEET", "Canvas").strip() or "Canvas"
+        items = list(payload.get("items", []) or [])
+
+        # Build rows
+        header = ["id", "type", "name", "subtitle", "data_json"]
+        rows: list[list[str]] = [header]
+        for it in items:
+            data_json = json.dumps(it.get("data", {}), ensure_ascii=False)
+            rows.append([
+                str(it.get("id", "")),
+                str(it.get("type", "")),
+                str(it.get("name", "")),
+                str(it.get("subtitle", "")),
+                data_json,
+            ])
+
+        # Create spreadsheet if needed and ensure sheet exists
+        spreadsheet_id = _ensure_spreadsheet(composio, user_id, title)
+        try:
+            _ensure_sheet(composio, user_id, spreadsheet_id, sheet_title)
+        except Exception:
+            # If sheet creation fails due to stale spreadsheet id, reset and recreate
+            _save_gs_meta({})
+            spreadsheet_id = _ensure_spreadsheet(composio, user_id, title)
+            _ensure_sheet(composio, user_id, spreadsheet_id, sheet_title)
+
+        # Clear and append
+        _clear_and_append(composio, user_id, spreadsheet_id, sheet_title, rows)
+
+        return {"ok": True, "spreadsheetId": spreadsheet_id, "url": f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to sync Google Sheets: {e}")
