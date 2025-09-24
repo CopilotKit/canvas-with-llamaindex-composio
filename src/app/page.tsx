@@ -904,6 +904,10 @@ export default function CopilotKitPage() {
                     title: "Add a Chart",
                     message: "Create a new chart.",
                   },
+                  {
+                    title: "Sync Google Sheet",
+                    message: "Sync the current canvas snapshot to Google Sheets.",
+                  },
                 ]}
               />
             )}
@@ -939,6 +943,27 @@ export default function CopilotKitPage() {
                     placeholder="Canvas description..."
                     className={cn(titleClasses, "mt-2 text-sm leading-6 resize-none overflow-hidden")}
                   />
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("http://127.0.0.1:9000/composio/connect/googlesheets");
+                          if (!res.ok) throw new Error(await res.text());
+                          const data = await res.json();
+                          const url = data?.redirectUrl as string | undefined;
+                          if (url) {
+                            window.open(url, "_blank", "noopener,noreferrer");
+                          }
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                    >
+                      Connect Google Sheets
+                    </Button>
+                  </div>
                 </motion.div>
               )}
               
