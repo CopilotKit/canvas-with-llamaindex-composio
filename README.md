@@ -194,11 +194,11 @@ graph TB
     Agent --> AgentState
     Agent --> Model
     
-    style UI fill:#e1f5fe,color:#111111
-    style Agent fill:#fff3e0,color:#111111
-    style Runtime fill:#f3e5f5,color:#111111
-    style Composio fill:#e8f5e9,color:#111111
-    style GSheets fill:#fff9c4,color:#111111
+    style UI text-decoration:none,fill:#e1f5fe
+    style Agent text-decoration:none,fill:#fff3e0
+    style Runtime text-decoration:none,fill:#f3e5f5,color:#111111
+    style Composio text-decoration:none,fill:#e8f5e9,color:#111111
+    style GSheets text-decoration:none,fill:#fff9c4,color:#111111
     
     click UI "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx"
     click Agent "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py"
