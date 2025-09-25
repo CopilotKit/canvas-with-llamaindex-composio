@@ -16,6 +16,8 @@ dependencies = [
     "jsonpatch>=1.33",
     "uvicorn>=0.27.0",
     "fastapi>=0.100.0",
+    "composio-core>=0.6.0",
+    "composio-llamaindex>=0.6.0",
 ]
 authors = [
     { name = "Logan Markewich", email = "logan@runllama.ai" },

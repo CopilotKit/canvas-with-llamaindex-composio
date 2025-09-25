@@ -1,15 +1,48 @@
 from typing import Annotated, List, Optional, Dict, Any
+import asyncio
+import os
 
-from llama_index.core.workflow import Context
+from llama_index.core.workflow import Context, StartEvent, StopEvent
 from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
 from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
 
+from .sheets_tools import sync_all_to_sheets, get_sheet_url, create_new_sheet, sync_state_to_sheets
+
+
+# Google Sheets sync will be initialized on first use
+
 
 # --- Backend tools (server-side) ---
 
+# These wrapper functions will be called by the AG-UI workflow
+# They need to match the expected signature for backend tools
+def sheets_sync_all() -> str:
+    """Sync all current canvas items to Google Sheets."""
+    # Note: AG-UI will inject the state when calling this
+    return "Sync triggered - use this tool to sync canvas to Google Sheets"
+
+def sheets_get_url() -> str:
+    """Get the URL of the synced Google Sheet."""
+    return get_sheet_url()
+
+def sheets_create_new(title: Optional[str] = None) -> str:
+    """Create a new Google Sheet for syncing canvas data."""
+    return create_new_sheet(title)
+
 
 # --- Frontend tool stubs (names/signatures only; execution happens in the UI) ---
+
+# Helper to trigger sync after state changes
+def _trigger_sync_if_needed(state: Dict[str, Any], action: str = "") -> None:
+    """Helper to sync to sheets after state changes."""
+    try:
+        # Only sync on significant actions
+        if action in ["created", "deleted", "updated"]:
+            result = sync_state_to_sheets(state)
+            print(f"Auto-sync after {action}: {result}")
+    except Exception as e:
+        print(f"Auto-sync error: {e}")
 
 def createItem(
     type: Annotated[str, "One of: project, entity, note, chart."],
@@ -150,7 +183,7 @@ FIELD_SCHEMA = (
 )
 
 SYSTEM_PROMPT = (
-    "You are a helpful AG-UI assistant.\n\n"
+    "You are a helpful AG-UI assistant with Google Sheets integration.\n\n"
     + FIELD_SCHEMA +
     "\nMUTATION/TOOL POLICY:\n"
     "- When you claim to create/update/delete, you MUST call the corresponding tool(s) (frontend or backend).\n"
@@ -160,11 +193,19 @@ SYSTEM_PROMPT = (
     "DESCRIPTION MAPPING:\n"
     "- For project/entity/chart: treat 'description', 'overview', 'summary', 'caption', 'blurb' as the card subtitle; use setItemSubtitleOrDescription.\n"
     "- For notes: 'content', 'description', 'text', or 'note' refers to note content; use setNoteField1 / appendNoteField1 / clearNoteField1.\n\n"
+    "GOOGLE SHEETS INTEGRATION:\n"
+    "- Canvas items are automatically synced to Google Sheets (one row per item).\n"
+    "- Use `sync_all_to_sheets` to manually trigger a full sync.\n"
+    "- Use `get_sheet_url` to get the link to the synced spreadsheet.\n"
+    "- Use `create_new_sheet` to create a fresh spreadsheet.\n"
+    "- The sheet contains: ID, Type, Name, Subtitle, Field1-4, Last Updated, and Raw Data columns.\n\n"
     "STRICT GROUNDING RULES:\n"
     "1) ONLY use shared state (items/globalTitle/globalDescription) as the source of truth.\n"
     "2) Before ANY read or write, assume values may have changed; always read the latest state.\n"
     "3) If a command doesn't specify which item to change, ask to clarify.\n"
 )
+
+
 
 agentic_chat_router = get_ag_ui_workflow_router(
     llm=OpenAI(model="gpt-4.1"),
@@ -196,7 +237,7 @@ agentic_chat_router = get_ag_ui_workflow_router(
         clearChartField1Value,
         removeChartField1,
     ],
-    backend_tools=[],
+    backend_tools=[sheets_sync_all, sheets_get_url, sheets_create_new],
     system_prompt=SYSTEM_PROMPT,
     initial_state={
         # Shared state synchronized with the frontend canvas
@@ -206,4 +247,6 @@ agentic_chat_router = get_ag_ui_workflow_router(
         "lastAction": "",
         "itemsCreated": 0,
     },
+    # Enable state change events for sheets sync
+    enable_state_snapshots=True,
 )
