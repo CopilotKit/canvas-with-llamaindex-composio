@@ -18,7 +18,7 @@ import { projectAddField4Item, projectSetField4ItemText, projectSetField4ItemDon
 import useMediaQuery from "@/hooks/use-media-query";
 import ItemHeader from "@/components/canvas/ItemHeader";
 import NewItemMenu from "@/components/canvas/NewItemMenu";
-import GoogleSheetsButton from "@/components/canvas/GoogleSheetsButton";
+import GoogleSheetsMenu from "@/components/canvas/GoogleSheetsMenu";
 
 export default function CopilotKitPage() {
   const { state, setState } = useCoAgent<AgentState>({
@@ -48,6 +48,7 @@ export default function CopilotKitPage() {
   const lastCreationRef = useRef<{ type: CardType; name: string; id: string; ts: number } | null>(null);
   const lastChecklistCreationRef = useRef<Record<string, { text: string; id: string; ts: number }>>({});
   const lastMetricCreationRef = useRef<Record<string, { label: string; value: number | ""; id: string; ts: number }>>({});
+
 
   useMotionValueEvent(scrollY, "change", (y) => {
     const disable = y >= headerScrollThreshold;
@@ -958,7 +959,7 @@ export default function CopilotKitPage() {
                     <p className="mt-2 text-sm text-muted-foreground">Create your first item to get started.</p>
                     <div className="mt-6 flex justify-center gap-2">
                       <NewItemMenu onSelect={(t: CardType) => addItem(t)} align="center" className="md:h-10" />
-                      <GoogleSheetsButton className="md:h-10" />
+                      <GoogleSheetsMenu className="md:h-10" />
                     </div>
                   </div>
                 </EmptyState>
@@ -1018,7 +1019,7 @@ export default function CopilotKitPage() {
                 align="center"
                 className="rounded-r-none border-r-0"
               />
-              <GoogleSheetsButton 
+              <GoogleSheetsMenu 
                 className="rounded-none border-r-0"
               />
               <Button
