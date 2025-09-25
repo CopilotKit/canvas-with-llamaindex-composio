@@ -24,8 +24,8 @@ https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 
 - Node.js 18+ 
 - Python 3.8+
-- OpenAI API Key (for the LlamaIndex agent)
-- Composio API Key (for external tool integrations)
+- OpenAI API Key (for the LlamaIndex agent - goes in `agent/.env`)
+- Composio API Key (for external tool integrations - goes in `agent/.env`)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - Any of the following package managers:
   - [pnpm](https://pnpm.io/installation) (recommended)
@@ -75,17 +75,29 @@ bun run install:agent
 > ```
 
 3. Set up your environment variables:
-```bash
-# Create a .env file in the root directory with:
-OPENAI_API_KEY="your-openai-api-key-here"
-COMPOSIO_API_KEY="your-composio-api-key-here"
-COMPOSIO_USER_ID="default"
 
-# For Google Sheets integration (optional):
-COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID="your-auth-config-id"
+There are two `.env` files to configure:
+
+**Frontend environment variables** - Copy `.env.local.example` to `.env.local` in the root directory:
+```bash
+# .env.local
+COPILOT_CLOUD_PUBLIC_API_KEY="" # optional (for CopilotKit Cloud features)
 ```
 
-> **Note:** You can get your Composio API key from [app.composio.dev](https://app.composio.dev)
+**Backend environment variables** - Copy `agent/.env.example` to `agent/.env`:
+```bash
+# OpenAI API key
+OPENAI_API_KEY=""
+
+# Composio secrets
+COMPOSIO_API_KEY=""
+COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID=""
+COMPOSIO_USER_ID="default"
+```
+
+> **Note:** 
+> - You can get your Composio API key from [app.composio.dev](https://app.composio.dev)
+> - The OpenAI API key is required for the LlamaIndex agent to function
 
 4. Start the development server:
 ```bash
@@ -292,7 +304,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### Agent Connection Issues
 If you see "I'm having trouble connecting to my tools", make sure:
 1. The LlamaIndex agent is running on port 9000 (check terminal output)
-2. Your OpenAI API key is set correctly as an environment variable
+2. Your OpenAI API key is set correctly in `agent/.env`
 3. Both servers started successfully (UI and agent)
 
 ### Port Already in Use
@@ -306,6 +318,13 @@ If the canvas and AI seem out of sync:
 1. Check the browser console for errors
 2. Ensure all frontend actions are properly registered
 3. Verify the agent is using the latest shared state (not cached values)
+
+### Google Sheets Integration Issues
+If Google Sheets sync is not working:
+1. Verify your Composio API key is set correctly in `agent/.env`
+2. Check if you need to authenticate with Google Sheets (the agent will provide an auth URL)
+3. Ensure the `COMPOSIO_USER_ID` is set (defaults to "default")
+4. For first-time setup, you may need to configure Google Sheets auth in your Composio dashboard
 
 ### Python Dependencies
 If you encounter Python import errors:
