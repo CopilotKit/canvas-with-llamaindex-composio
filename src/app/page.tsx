@@ -967,7 +967,7 @@ export default function CopilotKitPage() {
                       variant="outline"
                       onClick={async () => {
                         try {
-                          const res = await fetch("http://127.0.0.1:9000/composio/connect/googlesheets");
+                          const res = await fetch("http://127.0.0.1:9000/composio/connect/googlesheets", { cache: "no-store" });
                           if (!res.ok) throw new Error(await res.text());
                           const data = await res.json();
                           const url = data?.redirectUrl as string | undefined;
@@ -980,6 +980,22 @@ export default function CopilotKitPage() {
                       }}
                     >
                       Connect Google Sheets
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const r = await fetch("http://127.0.0.1:9000/composio/status/googlesheets", { cache: "no-store" });
+                          const j = await r.json();
+                          console.log("[Composio status]", j);
+                          alert(`Connected: ${j.connected} (count=${j.count})`);
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                    >
+                      Check Sheets Status
                     </Button>
                   </div>
                 </motion.div>
