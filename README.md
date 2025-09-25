@@ -1,6 +1,6 @@
-# CopilotKit <> LlamaIndex AG-UI Canvas Starter
+# CopilotKit <> LlamaIndex AG-UI Canvas with Composio
 
-This is a starter template for building AI-powered canvas applications using [LlamaIndex](https://llamaindex.com) and [CopilotKit](https://copilotkit.ai). It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization.
+This is a starter template for building AI-powered canvas applications using [LlamaIndex](https://llamaindex.com), [CopilotKit](https://copilotkit.ai), and [Composio](https://composio.dev). It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization and external tool integrations through Composio.
 
 https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 
@@ -13,6 +13,8 @@ https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
   - **Note**: Simple rich text content area
   - **Chart**: Visual metrics with percentage-based bar charts
 - **Real-time AI Sync**: Bidirectional synchronization between the AI agent and UI canvas
+- **External Tool Integration**: Powered by Composio for seamless integration with external services
+- **Google Sheets Sync**: Automatically sync canvas items to Google Sheets with one-way data flow
 - **Multi-step Planning**: AI can create and execute plans with visual progress tracking
 - **Human-in-the-Loop (HITL)**: Intelligent interrupts for clarification when needed
 - **JSON View**: Toggle between visual canvas and raw JSON state
@@ -23,6 +25,7 @@ https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 - Node.js 18+ 
 - Python 3.8+
 - OpenAI API Key (for the LlamaIndex agent)
+- Composio API Key (for external tool integrations)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - Any of the following package managers:
   - [pnpm](https://pnpm.io/installation) (recommended)
@@ -71,10 +74,18 @@ bun run install:agent
 > source agent/.venv/bin/activate
 > ```
 
-3. Set up your OpenAI API key:
+3. Set up your environment variables:
 ```bash
-export OPENAI_API_KEY="your-openai-api-key-here"
+# Create a .env file in the root directory with:
+OPENAI_API_KEY="your-openai-api-key-here"
+COMPOSIO_API_KEY="your-composio-api-key-here"
+COMPOSIO_USER_ID="default"
+
+# For Google Sheets integration (optional):
+COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID="your-auth-config-id"
 ```
+
+> **Note:** You can get your Composio API key from [app.composio.dev](https://app.composio.dev)
 
 4. Start the development server:
 ```bash
@@ -107,11 +118,16 @@ Once the application is running, you can:
    - "Add a checklist item 'Review budget'"
    - "Update the chart metrics"
 
-3. **Execute Plans**: Give the AI multi-step instructions
+3. **Sync with Google Sheets**: Use the Google Sheets button or ask the AI
+   - "Create a new Google Sheet" - Creates a sheet for syncing canvas data
+   - "Sync all items to Google Sheets" - Syncs current canvas state to the sheet
+   - "Get the sheet URL" - Retrieves the Google Sheets link
+
+4. **Execute Plans**: Give the AI multi-step instructions
    - "Create 3 projects with different priorities and add 2 checklist items to each"
    - The AI will create a plan and execute it step by step with visual progress
 
-4. **View JSON**: Toggle between the visual canvas and JSON view using the button at the bottom
+5. **View JSON**: Toggle between the visual canvas and JSON view using the button at the bottom
 
 ## Available Scripts
 The following scripts can also be run using your preferred package manager:
@@ -133,13 +149,20 @@ graph TB
         Actions[Frontend Actions<br/>useCopilotAction]
         State[State Management<br/>useCoAgent]
         Chat[CopilotChat]
+        SheetsBtn[Google Sheets<br/>Menu]
     end
     
     subgraph "Backend (Python)"
         Agent[LlamaIndex Agent<br/>agent.py]
         Tools[Backend Tools<br/>- set_plan<br/>- update_plan_progress<br/>- complete_plan]
+        SheetsTools[Sheets Tools<br/>- sheets_sync_all<br/>- sheets_create_new<br/>- sheets_get_url]
         AgentState[Workflow Context<br/>State Management]
         Model[LLM<br/>GPT-4o]
+    end
+    
+    subgraph "External Services"
+        Composio[Composio API<br/>Tool Integration]
+        GSheets[Google Sheets<br/>API]
     end
     
     subgraph "Communication"
@@ -147,17 +170,23 @@ graph TB
     end
     
     UI <--> State
+    SheetsBtn --> UI
     State <--> Runtime
     Chat <--> Runtime
     Actions --> Runtime
     Runtime <--> Agent
     Agent --> Tools
+    Agent --> SheetsTools
+    SheetsTools --> Composio
+    Composio --> GSheets
     Agent --> AgentState
     Agent --> Model
     
     style UI fill:#e1f5fe
     style Agent fill:#fff3e0
     style Runtime fill:#f3e5f5
+    style Composio fill:#e8f5e9
+    style GSheets fill:#fff9c4
     
     click UI "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx"
     click Agent "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py"
@@ -168,6 +197,7 @@ The main UI component is in [`src/app/page.tsx`](https://github.com/CopilotKit/c
 - **Canvas Management**: Visual grid of cards with create, read, update, and delete operations
 - **State Synchronization**: Uses `useCoAgent` hook for real-time state sync with the agent
 - **Frontend Actions**: Exposed as tools to the AI agent via `useCopilotAction`
+- **Google Sheets Integration**: Dropdown menu for creating sheets and syncing data
 - **Plan Visualization**: Shows multi-step plan execution with progress indicators
 - **HITL (Tool-based)**: Uses `useCopilotAction` with `renderAndWaitForResponse` for disambiguation prompts (e.g., choosing an item or card type)
 
@@ -175,6 +205,7 @@ The main UI component is in [`src/app/page.tsx`](https://github.com/CopilotKit/c
 The agent logic is in [`agent/agent/agent.py`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py). It features:
 - **Workflow Context**: Uses LlamaIndex's Context for state management and event streaming
 - **Tool Integration**: Backend tools for planning, frontend tools integration via CopilotKit
+- **Composio Integration**: Leverages Composio for external service connections (Google Sheets, etc.)
 - **Strict Grounding**: Enforces data consistency by always using shared state as truth
 - **Loop Control**: Prevents infinite loops and redundant operations
 - **Planning System**: Can create and execute multi-step plans with status tracking
@@ -196,12 +227,22 @@ sequenceDiagram
     participant CK as CopilotKit
     participant Agent as LlamaIndex Agent
     participant Tools
+    participant Composio
+    participant GSheets as Google Sheets
     
     User->>UI: Interact with canvas
     UI->>CK: Update state via useCoAgent
     CK->>Agent: Send state + message
     Agent->>Agent: Process with GPT-4o
     Agent->>Tools: Execute tools
+    
+    alt Google Sheets Sync
+        Agent->>Composio: Execute sheets_sync_all
+        Composio->>GSheets: Update spreadsheet
+        GSheets-->>Composio: Confirm update
+        Composio-->>Agent: Return status
+    end
+    
     Tools-->>Agent: Return results
     Agent->>CK: Return updated state
     CK->>UI: Sync state changes
@@ -209,6 +250,7 @@ sequenceDiagram
     
     Note over Agent: Maintains ground truth
     Note over UI,CK: Real-time bidirectional sync
+    Note over Composio,GSheets: External tool integration
 ```
 
 ## Customization Guide
@@ -234,6 +276,7 @@ sequenceDiagram
 
 - [LlamaIndex Documentation](https://docs.llamaindex.com/introduction) - Learn more about LlamaIndex and its features
 - [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
+- [Composio Documentation](https://docs.composio.dev) - Learn about Composio's tool integrations
 - [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
 
 ## Contributing
