@@ -2,7 +2,7 @@ from typing import Annotated, List, Optional, Dict, Any
 import asyncio
 import os
 
-from llama_index.core.workflow import Context, StartEvent, StopEvent
+from llama_index.core.workflow import Context, StartEvent, StopEvent, Workflow, step
 from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
 from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
@@ -12,15 +12,45 @@ from .sheets_tools import sync_all_to_sheets, get_sheet_url_backend as get_sheet
 
 # Google Sheets sync will be initialized on first use
 
+# Global variable to store the current canvas state
+_current_canvas_state: Dict[str, Any] = {}
+
+def update_canvas_state(state: Dict[str, Any]) -> None:
+    """Update the global canvas state."""
+    global _current_canvas_state
+    _current_canvas_state = state
+    print(f"Updated canvas state with {len(state.get('items', []))} items")
 
 # --- Backend tools (server-side) ---
 
-def sheets_sync_all() -> str:
+def sheets_sync_all(**kwargs) -> str:
     """Sync all current canvas items to Google Sheets."""
     print("=== BACKEND TOOL CALLED: sheets_sync_all ===")
+    print(f"Received kwargs: {list(kwargs.keys())}")
     try:
-        # For now, we'll sync empty state - AG-UI should inject the actual state
-        result = sync_all_to_sheets({})
+        # Try to get state from various possible sources
+        state = None
+        
+        # Check if state is passed directly
+        if '__shared_state' in kwargs:
+            state = kwargs['__shared_state']
+            print(f"Got state from __shared_state")
+        elif 'state' in kwargs:
+            state = kwargs['state']
+            print(f"Got state from state")
+        elif 'context' in kwargs:
+            # Try to get from context
+            ctx = kwargs['context']
+            if hasattr(ctx, 'get'):
+                state = ctx.get('__shared_state', _current_canvas_state)
+                print(f"Got state from context")
+        else:
+            # Fall back to global state
+            state = _current_canvas_state
+            print(f"Using global state")
+            
+        print(f"Syncing state with {len(state.get('items', []))} items")
+        result = sync_all_to_sheets(state)
         print(f"Sync result: {result}")
         return result
     except Exception as e:
@@ -40,11 +70,34 @@ def sheets_get_url() -> str:
         print(f"Error in sheets_get_url: {e}")
         return f"Error getting sheet URL: {str(e)}"
 
-def sheets_create_new(title: Optional[str] = None) -> str:
+def sheets_create_new(title: Optional[str] = None, **kwargs) -> str:
     """Create a new Google Sheet for syncing canvas data."""
     print(f"=== BACKEND TOOL CALLED: sheets_create_new with title: {title} ===")
+    print(f"Received kwargs: {list(kwargs.keys())}")
     try:
-        result = create_new_sheet(title, None)
+        # Try to get state from various possible sources
+        state = None
+        
+        # Check if state is passed directly
+        if '__shared_state' in kwargs:
+            state = kwargs['__shared_state']
+            print(f"Got state from __shared_state")
+        elif 'state' in kwargs:
+            state = kwargs['state']
+            print(f"Got state from state")
+        elif 'context' in kwargs:
+            # Try to get from context
+            ctx = kwargs['context']
+            if hasattr(ctx, 'get'):
+                state = ctx.get('__shared_state', _current_canvas_state)
+                print(f"Got state from context")
+        else:
+            # Fall back to global state
+            state = _current_canvas_state
+            print(f"Using global state")
+            
+        print(f"Creating sheet with initial state of {len(state.get('items', []) if state else [])} items")
+        result = create_new_sheet(title, state)
         print(f"Create result: {result}")
         return result
     except Exception as e:
@@ -249,7 +302,19 @@ SYSTEM_PROMPT = (
 
 
 
-agentic_chat_router = get_ag_ui_workflow_router(
+# Create a custom workflow class to intercept state changes
+class SheetsAwareWorkflow(Workflow):
+    """Custom workflow that updates global state for sheets sync."""
+    
+    @step
+    async def handle_state_snapshot(self, ev: StateSnapshotWorkflowEvent) -> None:
+        """Capture state snapshot events and update global state."""
+        if hasattr(ev, 'state'):
+            update_canvas_state(ev.state)
+            print(f"Intercepted state update with {len(ev.state.get('items', []))} items")
+
+# Create the base router
+base_router = get_ag_ui_workflow_router(
     llm=OpenAI(model="gpt-4.1"),
     # Provide frontend tool stubs so the model knows their names/signatures.
     frontend_tools=[
@@ -290,3 +355,15 @@ agentic_chat_router = get_ag_ui_workflow_router(
         "itemsCreated": 0,
     },
 )
+
+# Create our custom workflow that extends the base router
+agentic_chat_router = base_router
+
+# Initialize the global state
+update_canvas_state({
+    "items": [],
+    "globalTitle": "",
+    "globalDescription": "",
+    "lastAction": "",
+    "itemsCreated": 0,
+})
