@@ -24,8 +24,8 @@ https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 
 - Node.js 18+ 
 - Python 3.8+
-- OpenAI API Key (for the LlamaIndex agent - goes in `agent/.env`)
-- Composio API Key (for external tool integrations - goes in `agent/.env`)
+- OpenAI API Key (for the LlamaIndex agent - goes in `agent/.env`) ([platform.openai.com/api-keys](https://platform.openai.com/api-keys))
+- Composio API Key & Config ID (for external tool integrations - goes in `agent/.env`) ([app.composio.dev/developers](https://app.composio.dev/developers))
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 - Any of the following package managers:
   - [pnpm](https://pnpm.io/installation) (recommended)
