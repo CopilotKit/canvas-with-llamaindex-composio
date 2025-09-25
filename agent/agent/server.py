@@ -239,8 +239,8 @@ def composio_sync_google_sheets(
     Will create spreadsheet if missing and reuse it; ensures a 'Canvas' sheet by default.
     """
     try:
-        # Use API client for action execution
-        composio, user_id = _get_api_client()
+        # Use provider client for action execution (supports get_entity/execute)
+        composio, user_id = _get_provider_client()
 
         title = os.getenv("COMPOSIO_SHEETS_TITLE", "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
         sheet_title = os.getenv("COMPOSIO_SHEETS_SHEET", "Canvas").strip() or "Canvas"
