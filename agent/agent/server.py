@@ -175,7 +175,7 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     # Use provider tools API
     created = composio.tools.execute(  # type: ignore[attr-defined]
         user_id=user_id,
-        action_name="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+        tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
         params={"title": title},
     )
     spreadsheet_id = (
@@ -194,7 +194,7 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
     try:
         found = composio.tools.execute(  # type: ignore[attr-defined]
             user_id=user_id,
-            action_name="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+            tool="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
             params={"spreadsheetId": spreadsheet_id, "title": sheet_title},
         )
         ok = True
@@ -205,7 +205,7 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
             user_id=user_id,
-            action_name="GOOGLESHEETS_ADD_SHEET",
+            tool="GOOGLESHEETS_ADD_SHEET",
             params={"spreadsheetId": spreadsheet_id, "title": sheet_title},
         )
 
@@ -215,19 +215,19 @@ def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: 
     try:
         composio.tools.execute(  # type: ignore[attr-defined]
             user_id=user_id,
-            action_name="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+            tool="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
             params={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]},
         )
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
             user_id=user_id,
-            action_name="GOOGLESHEETS_CLEAR_VALUES",
+            tool="GOOGLESHEETS_CLEAR_VALUES",
             params={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"},
         )
     # Append rows starting at A1
     composio.tools.execute(  # type: ignore[attr-defined]
         user_id=user_id,
-        action_name="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+        tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
         params={
             "spreadsheetId": spreadsheet_id,
             "range": f"{sheet_title}!A1",
