@@ -7,7 +7,7 @@ from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
 from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
 
-from .sheets_tools import sync_all_to_sheets, get_sheet_url, create_new_sheet, sync_state_to_sheets
+from .sheets_tools import sync_all_to_sheets, get_sheet_url, create_new_sheet, sync_state_to_sheets, check_sheets_auth
 
 
 # Google Sheets sync will be initialized on first use
@@ -29,6 +29,10 @@ def sheets_get_url() -> str:
 def sheets_create_new(title: Optional[str] = None) -> str:
     """Create a new Google Sheet for syncing canvas data."""
     return create_new_sheet(title)
+
+def sheets_check_auth() -> str:
+    """Check Google Sheets authentication status."""
+    return check_sheets_auth()
 
 
 # --- Frontend tool stubs (names/signatures only; execution happens in the UI) ---
@@ -237,7 +241,7 @@ agentic_chat_router = get_ag_ui_workflow_router(
         clearChartField1Value,
         removeChartField1,
     ],
-    backend_tools=[sheets_sync_all, sheets_get_url, sheets_create_new],
+    backend_tools=[sheets_sync_all, sheets_get_url, sheets_create_new, sheets_check_auth],
     system_prompt=SYSTEM_PROMPT,
     initial_state={
         # Shared state synchronized with the frontend canvas

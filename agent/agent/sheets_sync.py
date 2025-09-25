@@ -60,23 +60,26 @@ class GoogleSheetsSync:
                 if account.app_unique_id == "googlesheets":
                     return True
             
-            # If not authenticated, initiate auth flow
-            if self.auth_config_id:
-                print(f"Initiating Google Sheets authentication for user {self.user_id}")
-                connection_request = self.composio.connected_accounts.initiate(
-                    user_id=self.user_id,
-                    auth_config_id=self.auth_config_id,
-                )
-                print(f"Visit this URL to authenticate: {connection_request.redirect_url}")
-                # In production, you'd handle this async
-                connection_request.wait_for_connection(timeout=120)
-                return True
-            
+            # Not authenticated
             return False
             
         except Exception as e:
             print(f"Authentication check failed: {e}")
             return False
+    
+    def get_auth_url(self) -> Optional[str]:
+        """Get the authentication URL for Google Sheets."""
+        try:
+            if self.auth_config_id:
+                connection_request = self.composio.connected_accounts.initiate(
+                    user_id=self.user_id,
+                    auth_config_id=self.auth_config_id,
+                )
+                return connection_request.redirect_url
+            return None
+        except Exception as e:
+            print(f"Failed to get auth URL: {e}")
+            return None
     
     def create_or_get_spreadsheet(self, title: str = "AG-UI Canvas Data") -> str:
         """Create a new spreadsheet or get existing one."""

@@ -18,6 +18,7 @@ import { projectAddField4Item, projectSetField4ItemText, projectSetField4ItemDon
 import useMediaQuery from "@/hooks/use-media-query";
 import ItemHeader from "@/components/canvas/ItemHeader";
 import NewItemMenu from "@/components/canvas/NewItemMenu";
+import GoogleSheetsButton from "@/components/canvas/GoogleSheetsButton";
 
 export default function CopilotKitPage() {
   const { state, setState } = useCoAgent<AgentState>({
@@ -904,6 +905,14 @@ export default function CopilotKitPage() {
                     title: "Add a Chart",
                     message: "Create a new chart.",
                   },
+                  {
+                    title: "Create Google Sheet",
+                    message: "Create a new Google Sheet for syncing canvas data.",
+                  },
+                  {
+                    title: "Sync to Sheets",
+                    message: "Sync all items to Google Sheets.",
+                  },
                 ]}
               />
             )}
@@ -947,8 +956,9 @@ export default function CopilotKitPage() {
                   <div className="mx-auto max-w-lg text-center">
                     <h2 className="text-lg font-semibold text-foreground">Nothing here yet</h2>
                     <p className="mt-2 text-sm text-muted-foreground">Create your first item to get started.</p>
-                    <div className="mt-6 flex justify-center">
+                    <div className="mt-6 flex justify-center gap-2">
                       <NewItemMenu onSelect={(t: CardType) => addItem(t)} align="center" className="md:h-10" />
+                      <GoogleSheetsButton className="md:h-10" />
                     </div>
                   </div>
                 </EmptyState>
@@ -1006,14 +1016,16 @@ export default function CopilotKitPage() {
               <NewItemMenu
                 onSelect={(t: CardType) => addItem(t)}
                 align="center"
-                className="rounded-r-none border-r-0 peer"
+                className="rounded-r-none border-r-0"
+              />
+              <GoogleSheetsButton 
+                className="rounded-none border-r-0"
               />
               <Button
                 type="button"
                 variant="outline"
                 className={cn(
                   "gap-1.25 text-base font-semibold rounded-l-none",
-                  "peer-hover:border-l-accent!",
                 )}
                 onClick={() => setShowJsonView((v) => !v)}
               >
@@ -1052,6 +1064,14 @@ export default function CopilotKitPage() {
               {
                 title: "Add a Chart",
                 message: "Create a new chart.",
+              },
+              {
+                title: "Create Google Sheet",
+                message: "Create a new Google Sheet for syncing canvas data.",
+              },
+              {
+                title: "Sync to Sheets",
+                message: "Sync all items to Google Sheets.",
               },
             ]}
           />
