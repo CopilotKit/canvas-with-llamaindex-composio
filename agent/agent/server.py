@@ -250,6 +250,18 @@ def composio_sync_google_sheets(
         # Use provider client; tools.execute is available
         composio, user_id = _get_provider_client()
 
+        # Optional: check connection via API client if available
+        try:
+            api_client, _ = _get_api_client()
+            conns = getattr(getattr(api_client, "connected_accounts", api_client), "list", lambda: [])()
+            if isinstance(conns, (list, tuple)) and len(conns) == 0:
+                raise HTTPException(status_code=400, detail="Google Sheets is not connected. Click 'Connect Google Sheets' and complete consent.")
+        except HTTPException:
+            raise
+        except Exception:
+            # If the SDK shape doesn't expose list(), just proceed; any auth error will surface below
+            pass
+
         title = os.getenv("COMPOSIO_SHEETS_TITLE", "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
         sheet_title = os.getenv("COMPOSIO_SHEETS_SHEET", "Canvas").strip() or "Canvas"
         items = list(payload.get("items", []) or [])
@@ -282,4 +294,9 @@ def composio_sync_google_sheets(
 
         return {"ok": True, "spreadsheetId": spreadsheet_id, "url": f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to sync Google Sheets: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to sync Google Sheets: {type(e).__name__}: {e}")
+
+
+@app.get("/composio/sync")
+def composio_sync_method_info():
+    return {"error": "Method Not Allowed", "hint": "POST JSON payload {items:[...]} to this endpoint."}
