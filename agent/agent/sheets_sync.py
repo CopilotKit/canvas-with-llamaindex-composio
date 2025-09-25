@@ -7,7 +7,8 @@ import os
 import json
 from typing import Dict, List, Optional, Union
 from composio import Composio
-from composio_llamaindex import ComposioToolSet
+# Note: ComposioToolSet import removed due to version compatibility issues
+# We'll use the Composio client directly instead
 from datetime import datetime
 
 # Define Google Sheets actions we'll use
@@ -38,9 +39,6 @@ class GoogleSheetsSync:
         
         # Initialize Composio client
         self.composio = Composio(api_key=self.composio_api_key)
-        
-        # Initialize LlamaIndex toolset
-        self.toolset = ComposioToolSet(api_key=self.composio_api_key)
         
         # Sheet configuration
         self.spreadsheet_id: Optional[str] = None
@@ -84,9 +82,10 @@ class GoogleSheetsSync:
         """Create a new spreadsheet or get existing one."""
         try:
             # Create new spreadsheet
-            response = self.toolset.execute_action(
-                action="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-                params={
+            response = self.composio.execute_tool(
+                tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+                user_id=self.user_id,
+                parameters={
                     "title": title,
                     "sheets": [{
                         "properties": {
@@ -97,13 +96,25 @@ class GoogleSheetsSync:
                             }
                         }
                     }]
-                },
-                entity_id=self.user_id
+                }
             )
             
-            if response and "spreadsheet_id" in response:
-                self.spreadsheet_id = response["spreadsheet_id"]
-                print(f"Created new spreadsheet: {self.spreadsheet_id}")
+            # Handle different response formats from execute_tool
+            if response:
+                # Check if response has a result attribute
+                result = response.get("result", response) if isinstance(response, dict) else response
+                
+                # Extract spreadsheet_id from various possible locations
+                if isinstance(result, dict):
+                    self.spreadsheet_id = result.get("spreadsheet_id") or result.get("spreadsheetId")
+                else:
+                    self.spreadsheet_id = None
+                
+                if not self.spreadsheet_id:
+                    print(f"Warning: Could not extract spreadsheet_id from response: {response}")
+                    raise ValueError("Failed to get spreadsheet ID from response")
+                else:
+                    print(f"Created new spreadsheet: {self.spreadsheet_id}")
                 
                 # Add headers
                 self._add_headers()
@@ -122,15 +133,15 @@ class GoogleSheetsSync:
             raise ValueError("No spreadsheet ID set")
         
         try:
-            response = self.toolset.execute_action(
-                action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-                params={
+            response = self.composio.execute_tool(
+                tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                user_id=self.user_id,
+                parameters={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A1",
                     "values": [self.headers],
                     "valueInputOption": "RAW"
-                },
-                entity_id=self.user_id
+                }
             )
             print(f"Added headers to spreadsheet")
         except Exception as e:
@@ -154,9 +165,10 @@ class GoogleSheetsSync:
             
             if rows:
                 # Batch append all rows
-                response = self.toolset.execute_action(
-                    action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-                    params={
+                response = self.composio.execute_tool(
+                    tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                    user_id=self.user_id,
+                parameters={
                         "spreadsheet_id": self.spreadsheet_id,
                         "range": f"{self.sheet_name}!A2",
                         "values": rows,
@@ -175,13 +187,13 @@ class GoogleSheetsSync:
     def _clear_sheet_data(self):
         """Clear all data from sheet except headers."""
         try:
-            response = self.toolset.execute_action(
-                action="GOOGLESHEETS_CLEAR_VALUES",
-                params={
+            response = self.composio.execute_tool(
+                tool="GOOGLESHEETS_CLEAR_VALUES",
+                user_id=self.user_id,
+                parameters={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A2:Z1000"
-                },
-                entity_id=self.user_id
+                }
             )
             print("Cleared sheet data")
         except Exception as e:
@@ -253,15 +265,15 @@ class GoogleSheetsSync:
         
         try:
             row = self._item_to_row(item)
-            response = self.toolset.execute_action(
-                action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-                params={
+            response = self.composio.execute_tool(
+                tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                user_id=self.user_id,
+                parameters={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A2",
                     "values": [row],
                     "valueInputOption": "RAW"
-                },
-                entity_id=self.user_id
+                }
             )
             print(f"Added item {item.get('id')} to sheet")
             return True

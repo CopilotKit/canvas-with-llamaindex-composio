@@ -247,6 +247,4 @@ agentic_chat_router = get_ag_ui_workflow_router(
         "lastAction": "",
         "itemsCreated": 0,
     },
-    # Enable state change events for sheets sync
-    enable_state_snapshots=True,
 )
