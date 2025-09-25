@@ -52,15 +52,16 @@ class GoogleSheetsSync:
     def ensure_authenticated(self) -> bool:
         """Ensure the user is authenticated with Google Sheets."""
         try:
-            # Check if user has connected account
-            connected_accounts = self.composio.connected_accounts.list(user_id=self.user_id)
+            # Get entity and check connections
+            entity = self.composio.get_entity(self.user_id)
+            connections = entity.get_connections()
             
             # Look for Google Sheets connection
-            for account in connected_accounts:
-                if account.app_unique_id == "googlesheets":
-                    return True
+            for conn in connections:
+                if hasattr(conn, 'appUniqueId') and conn.appUniqueId == "googlesheets":
+                    if hasattr(conn, 'status') and conn.status == "ACTIVE":
+                        return True
             
-            # Not authenticated
             return False
             
         except Exception as e:
@@ -70,13 +71,29 @@ class GoogleSheetsSync:
     def get_auth_url(self) -> Optional[str]:
         """Get the authentication URL for Google Sheets."""
         try:
-            if self.auth_config_id:
-                connection_request = self.composio.connected_accounts.initiate(
-                    user_id=self.user_id,
-                    auth_config_id=self.auth_config_id,
-                )
+            # This should never be called if already authenticated
+            # But just in case, we'll return a helpful message
+            if self.ensure_authenticated():
+                return None
+            
+            # Get entity and initiate connection
+            entity = self.composio.get_entity(self.user_id)
+            
+            # Use entity's initiate_connection method
+            connection_request = entity.initiate_connection(
+                app_id="googlesheets"
+            )
+            
+            # Extract URL from response
+            if hasattr(connection_request, 'redirectUrl'):
+                return connection_request.redirectUrl
+            elif hasattr(connection_request, 'redirect_url'):
                 return connection_request.redirect_url
+            elif isinstance(connection_request, dict):
+                return connection_request.get('redirectUrl') or connection_request.get('redirect_url')
+                
             return None
+            
         except Exception as e:
             print(f"Failed to get auth URL: {e}")
             return None
@@ -85,10 +102,10 @@ class GoogleSheetsSync:
         """Create a new spreadsheet or get existing one."""
         try:
             # Create new spreadsheet
-            response = self.composio.execute_tool(
-                tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-                user_id=self.user_id,
-                parameters={
+            entity = self.composio.get_entity(self.user_id)
+            response = entity.execute(
+                action="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+                params={
                     "title": title,
                     "sheets": [{
                         "properties": {
@@ -136,10 +153,10 @@ class GoogleSheetsSync:
             raise ValueError("No spreadsheet ID set")
         
         try:
-            response = self.composio.execute_tool(
-                tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-                user_id=self.user_id,
-                parameters={
+            entity = self.composio.get_entity(self.user_id)
+            response = entity.execute(
+                action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                params={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A1",
                     "values": [self.headers],
@@ -168,10 +185,10 @@ class GoogleSheetsSync:
             
             if rows:
                 # Batch append all rows
-                response = self.composio.execute_tool(
-                    tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-                    user_id=self.user_id,
-                parameters={
+                entity = self.composio.get_entity(self.user_id)
+                response = entity.execute(
+                    action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                    params={
                         "spreadsheet_id": self.spreadsheet_id,
                         "range": f"{self.sheet_name}!A2",
                         "values": rows,
@@ -190,10 +207,10 @@ class GoogleSheetsSync:
     def _clear_sheet_data(self):
         """Clear all data from sheet except headers."""
         try:
-            response = self.composio.execute_tool(
-                tool="GOOGLESHEETS_CLEAR_VALUES",
-                user_id=self.user_id,
-                parameters={
+            entity = self.composio.get_entity(self.user_id)
+            response = entity.execute(
+                action="GOOGLESHEETS_CLEAR_VALUES",
+                params={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A2:Z1000"
                 }
@@ -268,10 +285,10 @@ class GoogleSheetsSync:
         
         try:
             row = self._item_to_row(item)
-            response = self.composio.execute_tool(
-                tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-                user_id=self.user_id,
-                parameters={
+            entity = self.composio.get_entity(self.user_id)
+            response = entity.execute(
+                action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                params={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A2",
                     "values": [row],
