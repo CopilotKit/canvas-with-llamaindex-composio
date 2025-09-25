@@ -145,9 +145,9 @@ def get_sheet_url() -> str:
     return get_sheet_url_backend()
 
 
-def create_new_sheet(title: Optional[str] = None) -> str:
+def create_new_sheet(title: Optional[str] = None, state: Optional[Dict[str, Any]] = None) -> str:
     """Create a new Google Sheet for syncing canvas data."""
-    return create_new_sheet_backend(title)
+    return create_new_sheet_backend(title, state)
 
 
 def check_sheets_auth() -> str:

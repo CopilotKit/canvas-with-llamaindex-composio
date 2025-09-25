@@ -7,7 +7,7 @@ from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
 from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
 
-from .sheets_tools import sync_all_to_sheets, get_sheet_url, create_new_sheet, sync_state_to_sheets, check_sheets_auth
+from .sheets_tools import sync_all_to_sheets, get_sheet_url_backend as get_sheet_url, create_new_sheet_backend as create_new_sheet, sync_state_to_sheets, check_sheets_auth
 
 
 # Google Sheets sync will be initialized on first use
@@ -15,24 +15,54 @@ from .sheets_tools import sync_all_to_sheets, get_sheet_url, create_new_sheet, s
 
 # --- Backend tools (server-side) ---
 
-# These wrapper functions will be called by the AG-UI workflow
-# They need to match the expected signature for backend tools
 def sheets_sync_all() -> str:
     """Sync all current canvas items to Google Sheets."""
-    # Note: AG-UI will inject the state when calling this
-    return "Sync triggered - use this tool to sync canvas to Google Sheets"
+    print("=== BACKEND TOOL CALLED: sheets_sync_all ===")
+    try:
+        # For now, we'll sync empty state - AG-UI should inject the actual state
+        result = sync_all_to_sheets({})
+        print(f"Sync result: {result}")
+        return result
+    except Exception as e:
+        print(f"Error in sheets_sync_all: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Error syncing to sheets: {str(e)}"
 
 def sheets_get_url() -> str:
     """Get the URL of the synced Google Sheet."""
-    return get_sheet_url()
+    print("=== BACKEND TOOL CALLED: sheets_get_url ===")
+    try:
+        result = get_sheet_url()
+        print(f"URL result: {result}")
+        return result
+    except Exception as e:
+        print(f"Error in sheets_get_url: {e}")
+        return f"Error getting sheet URL: {str(e)}"
 
 def sheets_create_new(title: Optional[str] = None) -> str:
     """Create a new Google Sheet for syncing canvas data."""
-    return create_new_sheet(title)
+    print(f"=== BACKEND TOOL CALLED: sheets_create_new with title: {title} ===")
+    try:
+        result = create_new_sheet(title, None)
+        print(f"Create result: {result}")
+        return result
+    except Exception as e:
+        print(f"Error in sheets_create_new: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Error creating sheet: {str(e)}"
 
 def sheets_check_auth() -> str:
     """Check Google Sheets authentication status."""
-    return check_sheets_auth()
+    print("=== BACKEND TOOL CALLED: sheets_check_auth ===")
+    try:
+        result = check_sheets_auth()
+        print(f"Auth check result: {result}")
+        return result
+    except Exception as e:
+        print(f"Error in sheets_check_auth: {e}")
+        return f"Error checking auth: {str(e)}"
 
 
 # --- Frontend tool stubs (names/signatures only; execution happens in the UI) ---
@@ -192,16 +222,24 @@ SYSTEM_PROMPT = (
     "\nMUTATION/TOOL POLICY:\n"
     "- When you claim to create/update/delete, you MUST call the corresponding tool(s) (frontend or backend).\n"
     "- To create new cards, call the frontend tool `createItem` with `type` in {project, entity, note, chart} and optional `name`.\n"
+    "- GOOGLE SHEETS: When asked about Google Sheets, you MUST call the backend tools:\n"
+    "  - 'Create a new Google Sheet' → call sheets_create_new\n"
+    "  - 'Sync to sheets' → call sheets_sync_all\n"
+    "  - 'Get sheet URL' → call sheets_get_url\n"
+    "  - These are BACKEND tools, not frontend tools - you must actually call them!\n"
     "- After tools run, rely on the latest shared state (ground truth) when replying.\n"
     "- To set a card's subtitle (never the data fields): use setItemSubtitleOrDescription.\n\n"
     "DESCRIPTION MAPPING:\n"
     "- For project/entity/chart: treat 'description', 'overview', 'summary', 'caption', 'blurb' as the card subtitle; use setItemSubtitleOrDescription.\n"
     "- For notes: 'content', 'description', 'text', or 'note' refers to note content; use setNoteField1 / appendNoteField1 / clearNoteField1.\n\n"
     "GOOGLE SHEETS INTEGRATION:\n"
-    "- Canvas items are automatically synced to Google Sheets (one row per item).\n"
-    "- Use `sync_all_to_sheets` to manually trigger a full sync.\n"
-    "- Use `get_sheet_url` to get the link to the synced spreadsheet.\n"
-    "- Use `create_new_sheet` to create a fresh spreadsheet.\n"
+    "- Canvas items can be synced to Google Sheets (one row per item).\n"
+    "- IMPORTANT: When asked about Google Sheets, you MUST call the appropriate backend tool:\n"
+    "  - To create a sheet: call `sheets_create_new` backend tool\n"
+    "  - To sync items: call `sheets_sync_all` backend tool\n"
+    "  - To get the URL: call `sheets_get_url` backend tool\n"
+    "  - To check auth: call `sheets_check_auth` backend tool\n"
+    "- These are BACKEND TOOLS that must be called, not frontend tools.\n"
     "- The sheet contains: ID, Type, Name, Subtitle, Field1-4, Last Updated, and Raw Data columns.\n\n"
     "STRICT GROUNDING RULES:\n"
     "1) ONLY use shared state (items/globalTitle/globalDescription) as the source of truth.\n"
