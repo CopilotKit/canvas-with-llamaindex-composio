@@ -6,7 +6,7 @@ Keeps the shared state synchronized with a Google Sheet.
 import os
 import json
 from typing import Dict, List, Optional, Union
-from composio import Composio
+from composio import Composio, Action
 # Note: ComposioToolSet import removed due to version compatibility issues
 # We'll use the Composio client directly instead
 from datetime import datetime
@@ -103,35 +103,105 @@ class GoogleSheetsSync:
         try:
             # Create new spreadsheet
             entity = self.composio.get_entity(self.user_id)
-            response = entity.execute(
-                action="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-                params={
-                    "title": title,
-                    "sheets": [{
-                        "properties": {
-                            "title": self.sheet_name,
-                            "gridProperties": {
-                                "rowCount": 1000,
-                                "columnCount": len(self.headers)
+            print(f"Entity obtained: {entity}")
+            
+            # Try executing the action
+            try:
+                # Get the action object first
+                from composio import Action
+                action = Action.GOOGLESHEETS_CREATE_GOOGLE_SHEET1
+                
+                response = entity.execute(
+                    action=action,
+                    params={
+                        "title": title,
+                        "sheets": [{
+                            "properties": {
+                                "title": self.sheet_name,
+                                "gridProperties": {
+                                    "rowCount": 1000,
+                                    "columnCount": len(self.headers)
+                                }
                             }
-                        }
-                    }]
-                }
-            )
+                        }]
+                    }
+                )
+            except Exception as exec_error:
+                print(f"Execute error: {exec_error}")
+                print(f"Error type: {type(exec_error)}")
+                import traceback
+                traceback.print_exc()
+                
+                # Try simpler params
+                print("Trying with simpler params...")
+                from composio import Action
+                action = Action.GOOGLESHEETS_CREATE_GOOGLE_SHEET1
+                response = entity.execute(
+                    action=action,
+                    params={"title": title}
+                )
             
             # Handle different response formats from execute_tool
+            print(f"Response type: {type(response)}")
+            print(f"Response: {response}")
+            
             if response:
-                # Check if response has a result attribute
-                result = response.get("result", response) if isinstance(response, dict) else response
+                # Handle different response types
+                if hasattr(response, 'result'):
+                    # Response is an object with result attribute
+                    result = response.result
+                elif hasattr(response, 'data'):
+                    # Response is an object with data attribute
+                    result = response.data
+                elif isinstance(response, dict):
+                    # Response is a dictionary
+                    result = response.get("result", response)
+                elif isinstance(response, str):
+                    # Response is a string - try to parse as JSON
+                    try:
+                        import json
+                        result = json.loads(response)
+                    except:
+                        print(f"Could not parse string response: {response}")
+                        raise ValueError(f"Unexpected string response: {response}")
+                else:
+                    result = response
+                
+                print(f"Result type: {type(result)}")
+                print(f"Result: {result}")
                 
                 # Extract spreadsheet_id from various possible locations
                 if isinstance(result, dict):
-                    self.spreadsheet_id = result.get("spreadsheet_id") or result.get("spreadsheetId")
+                    # Check if result has data.response_data structure (Composio response format)
+                    if "data" in result and isinstance(result["data"], dict):
+                        data = result["data"]
+                        if "response_data" in data and isinstance(data["response_data"], dict):
+                            response_data = data["response_data"]
+                            self.spreadsheet_id = response_data.get("spreadsheet_id") or response_data.get("spreadsheetId")
+                    
+                    # Check nested response_data directly
+                    if not self.spreadsheet_id and "response_data" in result:
+                        response_data = result["response_data"]
+                        if isinstance(response_data, dict):
+                            self.spreadsheet_id = response_data.get("spreadsheet_id") or response_data.get("spreadsheetId")
+                    
+                    # If not found, check other locations
+                    if not self.spreadsheet_id:
+                        self.spreadsheet_id = (
+                            result.get("spreadsheet_id") or 
+                            result.get("spreadsheetId") or
+                            result.get("id") or
+                            (result.get("spreadsheet", {}).get("spreadsheetId") if isinstance(result.get("spreadsheet"), dict) else None)
+                        )
+                elif hasattr(result, 'spreadsheet_id'):
+                    self.spreadsheet_id = result.spreadsheet_id
+                elif hasattr(result, 'spreadsheetId'):
+                    self.spreadsheet_id = result.spreadsheetId
                 else:
                     self.spreadsheet_id = None
                 
                 if not self.spreadsheet_id:
-                    print(f"Warning: Could not extract spreadsheet_id from response: {response}")
+                    print(f"Warning: Could not extract spreadsheet_id from response")
                     raise ValueError("Failed to get spreadsheet ID from response")
                 else:
                     print(f"Created new spreadsheet: {self.spreadsheet_id}")
@@ -141,7 +211,7 @@ class GoogleSheetsSync:
                 
                 return self.spreadsheet_id
             else:
-                raise ValueError("Failed to create spreadsheet")
+                raise ValueError("Failed to create spreadsheet - no response")
                 
         except Exception as e:
             print(f"Error creating spreadsheet: {e}")
@@ -155,7 +225,7 @@ class GoogleSheetsSync:
         try:
             entity = self.composio.get_entity(self.user_id)
             response = entity.execute(
-                action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                action=Action.GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND,
                 params={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A1",
@@ -187,7 +257,7 @@ class GoogleSheetsSync:
                 # Batch append all rows
                 entity = self.composio.get_entity(self.user_id)
                 response = entity.execute(
-                    action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                    action=Action.GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND,
                     params={
                         "spreadsheet_id": self.spreadsheet_id,
                         "range": f"{self.sheet_name}!A2",
@@ -209,7 +279,7 @@ class GoogleSheetsSync:
         try:
             entity = self.composio.get_entity(self.user_id)
             response = entity.execute(
-                action="GOOGLESHEETS_CLEAR_VALUES",
+                action=Action.GOOGLESHEETS_CLEAR_VALUES,
                 params={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A2:Z1000"
@@ -287,7 +357,7 @@ class GoogleSheetsSync:
             row = self._item_to_row(item)
             entity = self.composio.get_entity(self.user_id)
             response = entity.execute(
-                action="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+                action=Action.GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND,
                 params={
                     "spreadsheet_id": self.spreadsheet_id,
                     "range": f"{self.sheet_name}!A2",
