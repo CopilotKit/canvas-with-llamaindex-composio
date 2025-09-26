@@ -312,9 +312,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     # Use provider tools API
     # Try common param shapes
     created = composio.tools.execute(  # type: ignore[attr-defined]
-        user_id=user_id,
-        tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-        parameters={"title": title}
+        user_id,
+        "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+        {"title": title}
     )
     spreadsheet_id = (
         (created.get("response_data", {}) or {}).get("spreadsheetId")
@@ -324,9 +324,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     if not spreadsheet_id:
         # Fallback to properties.title shape
         created = composio.tools.execute(  # type: ignore[attr-defined]
-            user_id=user_id,
-            tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-            parameters={"properties": {"title": title}}
+            user_id,
+            "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+            {"properties": {"title": title}}
         )
     spreadsheet_id = (
         (created.get("response_data", {}) or {}).get("spreadsheetId")
@@ -343,9 +343,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
 def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str) -> None:
     try:
         found = composio.tools.execute(  # type: ignore[attr-defined]
-            user_id=user_id,
-            tool="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
-            parameters={"spreadsheetId": spreadsheet_id, "title": sheet_title}
+            user_id,
+            "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+            {"spreadsheetId": spreadsheet_id, "title": sheet_title}
         )
         ok = True
         if isinstance(found, dict):
@@ -354,9 +354,9 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
             raise RuntimeError("not found")
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
-            user_id=user_id,
-            tool="GOOGLESHEETS_ADD_SHEET",
-            parameters={"spreadsheetId": spreadsheet_id, "title": sheet_title}
+            user_id,
+            "GOOGLESHEETS_ADD_SHEET",
+            {"spreadsheetId": spreadsheet_id, "title": sheet_title}
         )
 
 
@@ -364,15 +364,15 @@ def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: 
     # Clear
     try:
         composio.tools.execute(  # type: ignore[attr-defined]
-            user_id=user_id,
-            tool="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
-            parameters={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]}
+            user_id,
+            "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+            {"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]}
         )
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
-            user_id=user_id,
-            tool="GOOGLESHEETS_CLEAR_VALUES",
-            parameters={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"}
+            user_id,
+            "GOOGLESHEETS_CLEAR_VALUES",
+            {"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"}
         )
     # Append rows starting at A1
     composio.tools.execute(  # type: ignore[attr-defined]
