@@ -1,0 +1,36 @@
+
+> llamaindex-canvas-starter@0.0.1 dev /Users/brandonmcconnell/Projects/@CopilotKit/canvas-with-llamaindex-composio
+> concurrently "npm run dev:ui" "npm run dev:agent" --names ui,agent --prefix-colors blue,green --kill-others
+
+[ui] 
+[ui] > llamaindex-canvas-starter@0.0.1 dev:ui
+[ui] > next dev --turbopack
+[ui] 
+[agent] 
+[agent] > llamaindex-canvas-starter@0.0.1 dev:agent
+[agent] > cd agent && uv run dev
+[agent] 
+[ui]    ▲ Next.js 15.5.4 (Turbopack)
+[ui]    - Local:        http://localhost:3000
+[ui]    - Network:      http://10.0.0.232:3000
+[ui]    - Environments: .env.local
+[ui] 
+[ui]  ✓ Starting...
+[ui] Creating turbopack project {
+[ui]   dir: '/Users/brandonmcconnell/Projects/@CopilotKit/canvas-with-llamaindex-composio',
+[ui]   testMode: true
+[ui] }
+[ui]  ✓ Ready in 864ms
+[agent] INFO:     Started server process [73907]
+[agent] INFO:     Waiting for application startup.
+[agent] INFO:     Application startup complete.
+[agent] INFO:     Uvicorn running on http://127.0.0.1:9000 (Press CTRL+C to quit)
+[ui] [?25h
+[ui] npm run dev:ui exited with code 0
+--> Sending SIGTERM to other processes..
+[agent] INFO:     Shutting down
+[agent] INFO:     Waiting for application shutdown.
+[agent] INFO:     Application shutdown complete.
+[agent] INFO:     Finished server process [73907]
+[agent] npm run dev:agent exited with code SIGTERM
+ ELIFECYCLE  Command failed with exit code 1.

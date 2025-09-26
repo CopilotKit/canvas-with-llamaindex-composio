@@ -3,6 +3,7 @@ import asyncio
 import os
 
 from llama_index.core.workflow import Context, StartEvent, StopEvent, Workflow, step
+from llama_index.core.tools import FunctionTool
 from llama_index.llms.openai import OpenAI
 from llama_index.protocols.ag_ui.events import StateSnapshotWorkflowEvent
 from llama_index.protocols.ag_ui.router import get_ag_ui_workflow_router
@@ -11,6 +12,12 @@ from .sheets_tools import sync_all_to_sheets, get_sheet_url_backend as get_sheet
 
 
 # Google Sheets sync will be initialized on first use
+
+# Check environment variables on startup
+print("=== CHECKING ENVIRONMENT VARIABLES ===")
+print(f"COMPOSIO_API_KEY: {'SET' if os.getenv('COMPOSIO_API_KEY') else 'NOT SET'}")
+print(f"COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID: {os.getenv('COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID', 'NOT SET')}")
+print(f"COMPOSIO_USER_ID: {os.getenv('COMPOSIO_USER_ID', 'NOT SET')}")
 
 # Global variable to store the current canvas state
 _current_canvas_state: Dict[str, Any] = {}
@@ -24,7 +31,12 @@ def update_canvas_state(state: Dict[str, Any]) -> None:
 # --- Backend tools (server-side) ---
 
 def sheets_sync_all(**kwargs) -> str:
-    """Sync all current canvas items to Google Sheets."""
+    """
+    Sync all current canvas items to Google Sheets.
+    
+    This backend tool will sync all items in the canvas to a Google Sheet.
+    Call this when asked to 'sync to sheets', 'sync to Google Sheets', 'update sheet', etc.
+    """
     print("=== BACKEND TOOL CALLED: sheets_sync_all ===")
     print(f"Received kwargs: {list(kwargs.keys())}")
     try:
@@ -59,9 +71,15 @@ def sheets_sync_all(**kwargs) -> str:
         traceback.print_exc()
         return f"Error syncing to sheets: {str(e)}"
 
-def sheets_get_url() -> str:
-    """Get the URL of the synced Google Sheet."""
+def sheets_get_url(**kwargs) -> str:
+    """
+    Get the URL of the synced Google Sheet.
+    
+    This backend tool returns the URL of the current Google Sheet.
+    Call this when asked for 'sheet URL', 'sheet link', 'Google Sheets link', etc.
+    """
     print("=== BACKEND TOOL CALLED: sheets_get_url ===")
+    print(f"Received kwargs: {list(kwargs.keys())}")
     try:
         result = get_sheet_url()
         print(f"URL result: {result}")
@@ -71,7 +89,15 @@ def sheets_get_url() -> str:
         return f"Error getting sheet URL: {str(e)}"
 
 def sheets_create_new(title: Optional[str] = None, **kwargs) -> str:
-    """Create a new Google Sheet for syncing canvas data."""
+    """
+    Create a new Google Sheet for syncing canvas data.
+    
+    This backend tool creates a new Google Sheet and optionally syncs current canvas items.
+    Call this when asked to 'create a new Google Sheet', 'create sheet', 'new sheet', etc.
+    
+    Args:
+        title: Optional title for the new sheet
+    """
     print(f"=== BACKEND TOOL CALLED: sheets_create_new with title: {title} ===")
     print(f"Received kwargs: {list(kwargs.keys())}")
     try:
@@ -106,15 +132,23 @@ def sheets_create_new(title: Optional[str] = None, **kwargs) -> str:
         traceback.print_exc()
         return f"Error creating sheet: {str(e)}"
 
-def sheets_check_auth() -> str:
-    """Check Google Sheets authentication status."""
+def sheets_check_auth(**kwargs) -> str:
+    """
+    Check Google Sheets authentication status.
+    
+    This backend tool checks if the user is authenticated with Google Sheets.
+    Call this when asked about 'auth', 'authentication', 'login', 'connection status', etc.
+    """
     print("=== BACKEND TOOL CALLED: sheets_check_auth ===")
+    print(f"Received kwargs: {list(kwargs.keys())}")
     try:
         result = check_sheets_auth()
         print(f"Auth check result: {result}")
         return result
     except Exception as e:
         print(f"Error in sheets_check_auth: {e}")
+        import traceback
+        traceback.print_exc()
         return f"Error checking auth: {str(e)}"
 
 
@@ -287,12 +321,19 @@ SYSTEM_PROMPT = (
     "- For notes: 'content', 'description', 'text', or 'note' refers to note content; use setNoteField1 / appendNoteField1 / clearNoteField1.\n\n"
     "GOOGLE SHEETS INTEGRATION:\n"
     "- Canvas items can be synced to Google Sheets (one row per item).\n"
-    "- IMPORTANT: When asked about Google Sheets, you MUST call the appropriate backend tool:\n"
-    "  - To create a sheet: call `sheets_create_new` backend tool\n"
-    "  - To sync items: call `sheets_sync_all` backend tool\n"
-    "  - To get the URL: call `sheets_get_url` backend tool\n"
-    "  - To check auth: call `sheets_check_auth` backend tool\n"
-    "- These are BACKEND TOOLS that must be called, not frontend tools.\n"
+    "- CRITICAL: You have backend tools for Google Sheets. ALWAYS call them:\n"
+    "  - When asked to 'Create a new Google Sheet': CALL sheets_create_new\n"
+    "  - When asked to 'Sync to sheets' or similar: CALL sheets_sync_all\n"
+    "  - When asked for 'sheet URL' or 'link': CALL sheets_get_url\n"
+    "  - When checking authentication: CALL sheets_check_auth\n"
+    "- NEVER say 'authentication is required' without FIRST calling sheets_check_auth\n"
+    "- NEVER say 'I cannot create' without FIRST calling sheets_create_new\n"
+    "- These are BACKEND TOOLS - actually call them, don't just talk about them!\n"
+    "- Examples of when to call backend tools:\n"
+    "  - User: 'Create a new Google Sheet' → YOU: call sheets_create_new\n"
+    "  - User: 'auth into google sheets' → YOU: call sheets_check_auth\n"
+    "  - User: 'sync to sheets' → YOU: call sheets_sync_all\n"
+    "  - User: 'what is the sheet URL?' → YOU: call sheets_get_url\n"
     "- The sheet contains: ID, Type, Name, Subtitle, Field1-4, Last Updated, and Raw Data columns.\n\n"
     "STRICT GROUNDING RULES:\n"
     "1) ONLY use shared state (items/globalTitle/globalDescription) as the source of truth.\n"
@@ -302,19 +343,8 @@ SYSTEM_PROMPT = (
 
 
 
-# Create a custom workflow class to intercept state changes
-class SheetsAwareWorkflow(Workflow):
-    """Custom workflow that updates global state for sheets sync."""
-    
-    @step
-    async def handle_state_snapshot(self, ev: StateSnapshotWorkflowEvent) -> None:
-        """Capture state snapshot events and update global state."""
-        if hasattr(ev, 'state'):
-            update_canvas_state(ev.state)
-            print(f"Intercepted state update with {len(ev.state.get('items', []))} items")
-
-# Create the base router
-base_router = get_ag_ui_workflow_router(
+# Create the base router directly
+agentic_chat_router = get_ag_ui_workflow_router(
     llm=OpenAI(model="gpt-4.1"),
     # Provide frontend tool stubs so the model knows their names/signatures.
     frontend_tools=[
@@ -344,7 +374,12 @@ base_router = get_ag_ui_workflow_router(
         clearChartField1Value,
         removeChartField1,
     ],
-    backend_tools=[sheets_sync_all, sheets_get_url, sheets_create_new, sheets_check_auth],
+    backend_tools=[
+        FunctionTool.from_defaults(fn=sheets_sync_all, name="sheets_sync_all"),
+        FunctionTool.from_defaults(fn=sheets_get_url, name="sheets_get_url"),
+        FunctionTool.from_defaults(fn=sheets_create_new, name="sheets_create_new"),
+        FunctionTool.from_defaults(fn=sheets_check_auth, name="sheets_check_auth"),
+    ],
     system_prompt=SYSTEM_PROMPT,
     initial_state={
         # Shared state synchronized with the frontend canvas
@@ -355,9 +390,6 @@ base_router = get_ag_ui_workflow_router(
         "itemsCreated": 0,
     },
 )
-
-# Create our custom workflow that extends the base router
-agentic_chat_router = base_router
 
 # Initialize the global state
 update_canvas_state({

@@ -24,6 +24,12 @@ def _load_env_files() -> None:
 
 _load_env_files()
 
+# Debug: Print environment variables after loading
+print("=== ENVIRONMENT LOADED IN SERVER.PY ===")
+print(f"COMPOSIO_API_KEY: {'SET' if os.getenv('COMPOSIO_API_KEY') else 'NOT SET'}")
+print(f"COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID: {os.getenv('COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID', 'NOT SET')}")
+print(f"COMPOSIO_USER_ID: {os.getenv('COMPOSIO_USER_ID', 'NOT SET')}")
+
 from .agent import agentic_chat_router
 
 app = FastAPI()
