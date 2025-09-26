@@ -40,6 +40,11 @@ def sheets_test() -> str:
     print("=== BACKEND TOOL CALLED: sheets_test ===")
     return "Google Sheets test tool executed! Now try 'Create a new Google Sheet'."
 
+def sheets_create_simple() -> str:
+    """Create a new Google Sheet."""
+    print("=== BACKEND TOOL CALLED: sheets_create_simple ===")
+    return "If you see this message, the backend tool was called successfully! Let me now try the real function..."
+
 def sheets_sync_all(**kwargs) -> str:
     """
     Sync all current canvas items to Google Sheets.
@@ -318,7 +323,7 @@ SYSTEM_PROMPT = (
     "IMMEDIATE ACTION RULES:\n"
     "When user mentions Google Sheets, IMMEDIATELY call the appropriate backend tool:\n"
     "- User says 'sheets test' → call sheets_test\n"
-    "- User mentions 'create' + 'Google Sheet' → call sheets_create_new\n"
+    "- User mentions 'create' + 'Google Sheet' → call sheets_create_simple\n"
     "- User mentions 'sync' + 'sheets' → call sheets_sync_all\n"
     "- User mentions 'Google Sheet' + 'URL/link' → call sheets_get_url\n"
     "- DO NOT check authentication first - the tools handle it!\n"
@@ -331,12 +336,13 @@ SYSTEM_PROMPT = (
     "- You have 6 backend tools:\n"
     "  1. test_backend_tool - Test tool to verify backend tools work\n"
     "  2. sheets_test - Test Google Sheets backend tools\n"
-    "  3. sheets_create_new - Creates a new Google Sheet\n"
+    "  3. sheets_create_simple - Creates a new Google Sheet (USE THIS FOR CREATE REQUESTS!)\n"
     "  4. sheets_sync_all - Syncs all canvas items to Google Sheets\n"
     "  5. sheets_get_url - Gets the URL of the current Google Sheet\n"
     "  6. sheets_check_auth - Checks if user is authenticated with Google Sheets\n"
     "- If user says 'test backend', call test_backend_tool\n"
     "- If user says 'sheets test', call sheets_test\n"
+    "- If user says 'create' + 'google sheet', ALWAYS call sheets_create_simple\n"
     "- NEVER make assumptions about authentication status - let tools handle it\n"
     "- NEVER say you cannot do something without trying the appropriate tool first\n"
     "- After tools run, rely on the latest shared state (ground truth) when replying.\n"
@@ -347,14 +353,19 @@ SYSTEM_PROMPT = (
     "GOOGLE SHEETS INTEGRATION:\n"
     "- Canvas items can be synced to Google Sheets (one row per item).\n"
     "- STEP-BY-STEP FOR GOOGLE SHEETS REQUESTS:\n"
-    "  1. User mentions creating a Google Sheet? → Call sheets_create_new immediately\n"
+    "  1. User mentions creating a Google Sheet? → Call sheets_create_simple immediately\n"
     "  2. User mentions syncing to sheets? → Call sheets_sync_all immediately\n"
     "  3. User asks for sheet URL? → Call sheets_get_url immediately\n"
     "  4. User mentions auth/login? → Call sheets_check_auth immediately\n"
+    "- EXACT PHRASE MATCHING:\n"
+    "  - User: 'Create a new Google Sheet' → You: call sheets_create_simple\n"
+    "  - User: 'sheets test' → You: call sheets_test\n"
+    "  - User: 'test backend' → You: call test_backend_tool\n"
     "- DO NOT:\n"
     "  × Say 'authentication is not properly configured'\n"
     "  × Say 'Please ensure your environment variables'\n"
     "  × Say 'I cannot create'\n"
+    "  × Say 'requires authentication' without calling a tool\n"
     "  × Check authentication before trying the requested action\n"
     "- DO:\n"
     "  ✓ Call the backend tool immediately when requested\n"
@@ -403,9 +414,9 @@ agentic_chat_router = get_ag_ui_workflow_router(
     backend_tools=[
         FunctionTool.from_defaults(fn=test_backend_tool, name="test_backend_tool"),
         FunctionTool.from_defaults(fn=sheets_test, name="sheets_test"),
+        FunctionTool.from_defaults(fn=sheets_create_simple, name="sheets_create_simple"),
         FunctionTool.from_defaults(fn=sheets_sync_all, name="sheets_sync_all"),
         FunctionTool.from_defaults(fn=sheets_get_url, name="sheets_get_url"),
-        FunctionTool.from_defaults(fn=sheets_create_new, name="sheets_create_new"),
         FunctionTool.from_defaults(fn=sheets_check_auth, name="sheets_check_auth"),
     ],
     system_prompt=SYSTEM_PROMPT,
