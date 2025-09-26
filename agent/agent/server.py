@@ -305,6 +305,12 @@ def _get_provider_client():
 
 
 def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
+    """Create or return existing spreadsheet.
+    
+    Note: When using LlamaIndexProvider, tools.execute() expects:
+    - First positional argument: tool name
+    - Keyword arguments: user_id=..., arguments=...
+    """
     meta = _load_gs_meta()
     spreadsheet_id = meta.get("spreadsheetId")
     if spreadsheet_id:
@@ -312,9 +318,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
         # Verify the spreadsheet still exists
         try:
             info = composio.tools.execute(  # type: ignore[attr-defined]
-                user_id,
                 "GOOGLESHEETS_GET_SPREADSHEET_INFO",
-                {"spreadsheetId": spreadsheet_id}
+                user_id=user_id,
+                arguments={"spreadsheetId": spreadsheet_id}
             )
             print(f"Debug - Spreadsheet exists, continuing with ID: {spreadsheet_id}")
             return spreadsheet_id
@@ -326,9 +332,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     # Try common param shapes
     print(f"Debug - Creating spreadsheet with title: {title} for user: {user_id}")
     created = composio.tools.execute(  # type: ignore[attr-defined]
-        user_id,
         "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-        {"title": title}
+        user_id=user_id,
+        arguments={"title": title}
     )
     print(f"Debug - Create result type: {type(created)}")
     print(f"Debug - Create result: {created}")
@@ -351,9 +357,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
         print("Debug - First attempt failed, trying with properties.title format")
         # Fallback to properties.title shape
         created = composio.tools.execute(  # type: ignore[attr-defined]
-            user_id,
             "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-            {"properties": {"title": title}}
+            user_id=user_id,
+            arguments={"properties": {"title": title}}
         )
         print(f"Debug - Second create result: {created}")
         
@@ -376,9 +382,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
 def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str) -> None:
     try:
         found = composio.tools.execute(  # type: ignore[attr-defined]
-            user_id,
             "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
-            {"spreadsheetId": spreadsheet_id, "title": sheet_title}
+            user_id=user_id,
+            arguments={"spreadsheetId": spreadsheet_id, "title": sheet_title}
         )
         ok = True
         if isinstance(found, dict):
@@ -387,9 +393,9 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
             raise RuntimeError("not found")
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
-            user_id,
             "GOOGLESHEETS_ADD_SHEET",
-            {"spreadsheetId": spreadsheet_id, "title": sheet_title}
+            user_id=user_id,
+            arguments={"spreadsheetId": spreadsheet_id, "title": sheet_title}
         )
 
 
@@ -397,21 +403,21 @@ def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: 
     # Clear
     try:
         composio.tools.execute(  # type: ignore[attr-defined]
-            user_id,
             "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
-            {"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]}
+            user_id=user_id,
+            arguments={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]}
         )
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
-            user_id,
             "GOOGLESHEETS_CLEAR_VALUES",
-            {"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"}
+            user_id=user_id,
+            arguments={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"}
         )
     # Append rows starting at A1
     composio.tools.execute(  # type: ignore[attr-defined]
-        user_id,
         "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-        {
+        user_id=user_id,
+        arguments={
             "spreadsheetId": spreadsheet_id,
             "range": f"{sheet_title}!A1",
             "valueInputOption": "RAW",

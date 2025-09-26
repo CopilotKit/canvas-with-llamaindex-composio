@@ -205,11 +205,11 @@ async def syncCanvasSnapshotToGoogleSheets(
         if not spreadsheet_id:
             try:
                 created = composio.tools.execute(
+                    "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
                     user_id=user_id,
-                    tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
-                    parameters={
+                    arguments={
                         "title": title,
-                    },
+                    }
                 )
                 # Try common shapes for result
                 spreadsheet_id = (
@@ -230,12 +230,12 @@ async def syncCanvasSnapshotToGoogleSheets(
         # Ensure sheet/tab exists (create if missing)
         try:
             found = composio.tools.execute(
+                "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
                 user_id=user_id,
-                tool="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
-                parameters={
+                arguments={
                     "spreadsheetId": spreadsheet_id,
                     "title": tab,
-                },
+                }
             )
             # If not found, add sheet
             not_found = False
@@ -247,22 +247,22 @@ async def syncCanvasSnapshotToGoogleSheets(
                 not_found = not ok
             if not_found:
                 composio.tools.execute(
+                    "GOOGLESHEETS_ADD_SHEET",
                     user_id=user_id,
-                    tool="GOOGLESHEETS_ADD_SHEET",
-                    parameters={
+                    arguments={
                         "spreadsheetId": spreadsheet_id,
                         "title": tab,
-                    },
+                    }
                 )
         except Exception:
             # Best-effort: attempt to add the sheet
             composio.tools.execute(
+                "GOOGLESHEETS_ADD_SHEET",
                 user_id=user_id,
-                tool="GOOGLESHEETS_ADD_SHEET",
-                parameters={
+                arguments={
                     "spreadsheetId": spreadsheet_id,
                     "title": tab,
-                },
+                }
             )
 
         # Read latest state snapshot
@@ -285,34 +285,34 @@ async def syncCanvasSnapshotToGoogleSheets(
         # Clear full sheet and write values anew
         try:
             composio.tools.execute(
+                "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
                 user_id=user_id,
-                tool="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
-                parameters={
+                arguments={
                     "spreadsheetId": spreadsheet_id,
                     "ranges": [f"{tab}!A:ZZ"],
-                },
+                }
             )
         except Exception:
             # Fallback clear values on a generous range
             composio.tools.execute(
+                "GOOGLESHEETS_CLEAR_VALUES",
                 user_id=user_id,
-                tool="GOOGLESHEETS_CLEAR_VALUES",
-                parameters={
+                arguments={
                     "spreadsheetId": spreadsheet_id,
                     "range": f"{tab}!A:ZZ",
-                },
+                }
             )
 
         # Append all rows starting at A1
         composio.tools.execute(
+            "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
             user_id=user_id,
-            tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-            parameters={
+            arguments={
                 "spreadsheetId": spreadsheet_id,
                 "range": f"{tab}!A1",
                 "valueInputOption": "RAW",
                 "values": rows,
-            },
+            }
         )
 
     return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
