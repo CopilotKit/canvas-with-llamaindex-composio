@@ -408,6 +408,9 @@ def composio_sync_google_sheets(
             
             # Check for Google Sheets connections for this specific user
             has_google_sheets = False
+            print(f"Debug Sync - Total connections found: {len(conns) if isinstance(conns, (list, tuple)) else 0}")
+            print(f"Debug Sync - Auth config ID: {auth_config_id}")
+            print(f"Debug Sync - User ID: {api_user_id}")
             if isinstance(conns, (list, tuple)):
                 for conn in conns:
                     # Check if this connection belongs to our user
@@ -423,11 +426,24 @@ def composio_sync_google_sheets(
                     if conn_user_id and conn_user_id != api_user_id:
                         continue
                     
+                    # Since we're filtering by auth_config_id, these should all be Google Sheets connections
+                    # Default to true since we filtered by auth config
+                    is_google_sheets = True
+                    
+                    # Optional: verify it's actually Google Sheets
                     if hasattr(conn, "auth_config"):
-                        if hasattr(conn.auth_config, "toolkit") and conn.auth_config.toolkit.lower() == "googlesheets":
-                            has_google_sheets = True
-                            break
-                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
+                        if hasattr(conn.auth_config, "toolkit"):
+                            is_google_sheets = conn.auth_config.toolkit.lower() == "googlesheets"
+                        elif hasattr(conn.auth_config, "app_name"):
+                            is_google_sheets = "googlesheets" in conn.auth_config.app_name.lower()
+                    elif isinstance(conn, dict):
+                        auth_config = conn.get("auth_config", {})
+                        toolkit = auth_config.get("toolkit", "").lower()
+                        app_name = auth_config.get("app_name", "").lower()
+                        if toolkit or app_name:
+                            is_google_sheets = toolkit == "googlesheets" or "googlesheets" in app_name
+                    
+                    if is_google_sheets:
                         has_google_sheets = True
                         break
             
