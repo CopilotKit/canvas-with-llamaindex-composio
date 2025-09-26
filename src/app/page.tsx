@@ -970,12 +970,25 @@ export default function CopilotKitPage() {
                           const res = await fetch("http://127.0.0.1:9000/composio/connect/googlesheets", { cache: "no-store" });
                           if (!res.ok) throw new Error(await res.text());
                           const data = await res.json();
+                          
+                          if (data?.alreadyConnected) {
+                            alert('✅ Google Sheets is already connected!');
+                            return;
+                          }
+                          
                           const url = data?.redirectUrl as string | undefined;
                           if (url) {
                             window.open(url, "_blank", "noopener,noreferrer");
+                            // Optional: show connection ID if available
+                            if (data?.connectionId) {
+                              console.log("[Composio connection ID]", data.connectionId);
+                            }
+                          } else {
+                            alert('Failed to get authentication URL. Please try again.');
                           }
                         } catch (e) {
                           console.error(e);
+                          alert('Failed to initiate connection. Please ensure the backend is running and COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID is set.');
                         }
                       }}
                     >
@@ -989,9 +1002,18 @@ export default function CopilotKitPage() {
                           const r = await fetch("http://127.0.0.1:9000/composio/status/googlesheets", { cache: "no-store" });
                           const j = await r.json();
                           console.log("[Composio status]", j);
-                          alert(`Connected: ${j.connected} (count=${j.count})`);
+                          
+                          if (j.connected) {
+                            const connDetails = j.connections?.map((c: any) => 
+                              `ID: ${c.id || 'unknown'}, Status: ${c.status || 'active'}`
+                            ).join('\n') || 'No details available';
+                            alert(`✅ Google Sheets is connected!\n\nConnections: ${j.count}\n${connDetails}`);
+                          } else {
+                            alert('❌ Google Sheets is not connected.\n\nPlease click "Connect Google Sheets" to authenticate.');
+                          }
                         } catch (e) {
                           console.error(e);
+                          alert('Failed to check connection status. Please ensure the backend is running.');
                         }
                       }}
                     >

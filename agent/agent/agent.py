@@ -66,10 +66,35 @@ def _load_composio_tools() -> List[Any]:
 
     user_id = os.getenv("COMPOSIO_USER_ID", "default")
     try:
+        # First check if we have a connected Google Sheets account
+        api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
+        if api_key:
+            # Use API client to check connections
+            api_composio = Composio(api_key=api_key)
+            conns = api_composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+            
+            # Check for Google Sheets connection
+            has_google_sheets = False
+            if conns and isinstance(conns, (list, tuple)):
+                for conn in conns:
+                    if hasattr(conn, "auth_config") and hasattr(conn.auth_config, "toolkit"):
+                        if conn.auth_config.toolkit.lower() == "googlesheets":
+                            has_google_sheets = True
+                            break
+                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
+                        has_google_sheets = True
+                        break
+            
+            if not has_google_sheets:
+                print("Warning: No Google Sheets connection found for user:", user_id)
+                return []
+        
+        # Load tools using the provider
         composio = Composio(provider=LlamaIndexProvider())
         tools = composio.tools.get(user_id=user_id, tools=GOOGLE_SHEETS_TOOLS)
         return list(tools) if tools is not None else []
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Failed to load Composio tools: {e}")
         return []
 
 
@@ -99,6 +124,34 @@ async def syncCanvasSnapshotToGoogleSheets(
     Returns the spreadsheet URL.
     """
     composio, user_id = _get_composio_client()
+    
+    # Check if Google Sheets is connected before proceeding
+    try:
+        from composio import Composio  # type: ignore
+        api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
+        if api_key:
+            api_composio = Composio(api_key=api_key)
+            conns = api_composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+            
+            has_google_sheets = False
+            if conns and isinstance(conns, (list, tuple)):
+                for conn in conns:
+                    if hasattr(conn, "auth_config") and hasattr(conn.auth_config, "toolkit"):
+                        if conn.auth_config.toolkit.lower() == "googlesheets":
+                            has_google_sheets = True
+                            break
+                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
+                        has_google_sheets = True
+                        break
+            
+            if not has_google_sheets:
+                raise RuntimeError("Google Sheets is not connected. Please connect Google Sheets first through the UI.")
+    except Exception as e:
+        if "not connected" in str(e).lower():
+            raise
+        # If we can't check, proceed anyway and let the actual API call fail if needed
+        pass
+    
     title = (spreadsheetTitle or "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
     tab = (sheetTitle or "Canvas").strip() or "Canvas"
 

@@ -58,53 +58,60 @@ def composio_connect_google_sheets():
 
     try:
         composio, user_id = _get_api_client()
-        # If already connected, short-circuit
+        # Check if already connected for this user
         try:
-            conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
-            # Basic heuristic: if any account exists for Googlesheets, consider connected
-            if conns and isinstance(conns, (list, tuple)) and len(conns) > 0:
-                return {"alreadyConnected": True}
+            # List connected accounts for this specific user
+            conns = composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+            # Check if any account is connected for Google Sheets
+            if conns and isinstance(conns, (list, tuple)):
+                for conn in conns:
+                    # Check if this is a Google Sheets connection
+                    if hasattr(conn, "auth_config") and hasattr(conn.auth_config, "toolkit"):
+                        if conn.auth_config.toolkit.lower() == "googlesheets":
+                            return {"alreadyConnected": True}
+                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
+                        return {"alreadyConnected": True}
         except Exception:
             pass
 
-        # Programmatically initiate connection; returns object with redirect URL (field name may vary)
-        req = composio.connected_accounts.initiate(  # type: ignore[attr-defined]
+        # Use link() method instead of initiate() as per docs
+        connection_request = composio.connected_accounts.link(  # type: ignore[attr-defined]
             user_id=user_id,
             auth_config_id=auth_config_id,
+            # Optional: Add callback URL if needed
+            # callback_url="http://localhost:3000/callback"
         )
 
-        # Try several shapes to find a URL
+        # Extract redirect URL from connection request
         redirect_url = None
-        # Direct attributes
-        for key in ("redirect_url", "redirectUrl", "url", "connect_url", "connectUrl", "authorization_url", "authorizationUrl"):
-            if hasattr(req, key):
-                redirect_url = getattr(req, key)
-                if redirect_url:
-                    break
-        # Dict-like
-        if redirect_url is None and isinstance(req, dict):
-            for key in ("redirect_url", "redirectUrl", "url", "connect_url", "connectUrl", "authorization_url", "authorizationUrl"):
-                if key in req and req[key]:
-                    redirect_url = req[key]
-                    break
-        # Pydantic model
-        if redirect_url is None and hasattr(req, "model_dump"):
-            dump = req.model_dump()
-            for key in ("redirect_url", "redirectUrl", "url", "connect_url", "connectUrl", "authorization_url", "authorizationUrl"):
-                if key in dump and dump[key]:
-                    redirect_url = dump[key]
-                    break
-        # Fallback to __dict__
-        if redirect_url is None and hasattr(req, "__dict__"):
-            dump = req.__dict__
-            for key in ("redirect_url", "redirectUrl", "url", "connect_url", "connectUrl", "authorization_url", "authorizationUrl"):
-                if key in dump and dump[key]:
-                    redirect_url = dump[key]
-                    break
+        # Try direct attribute access first
+        if hasattr(connection_request, "redirect_url"):
+            redirect_url = connection_request.redirect_url
+        elif hasattr(connection_request, "redirectUrl"):
+            redirect_url = connection_request.redirectUrl
+        # Try dict-like access
+        elif isinstance(connection_request, dict):
+            redirect_url = connection_request.get("redirect_url") or connection_request.get("redirectUrl")
+        # Try model dump for Pydantic models
+        elif hasattr(connection_request, "model_dump"):
+            dump = connection_request.model_dump()
+            redirect_url = dump.get("redirect_url") or dump.get("redirectUrl")
 
         if not redirect_url:
             raise RuntimeError("No redirect URL returned by Composio.")
-        return {"redirectUrl": redirect_url}
+        
+        # Store connection request ID if available for later status checking
+        connection_id = None
+        if hasattr(connection_request, "id"):
+            connection_id = connection_request.id
+        elif isinstance(connection_request, dict) and "id" in connection_request:
+            connection_id = connection_request["id"]
+            
+        response = {"redirectUrl": redirect_url}
+        if connection_id:
+            response["connectionId"] = connection_id
+            
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to initiate Google Sheets connection: {e}")
 
@@ -113,9 +120,55 @@ def composio_connect_google_sheets():
 def composio_status_google_sheets():
     try:
         composio, user_id = _get_api_client()
-        conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
-        connected = bool(conns and isinstance(conns, (list, tuple)) and len(conns) > 0)
-        return {"connected": connected, "count": len(conns) if isinstance(conns, (list, tuple)) else 0}
+        # List connected accounts for this specific user
+        conns = composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+        
+        # Filter for Google Sheets connections
+        google_sheets_connections = []
+        if conns and isinstance(conns, (list, tuple)):
+            for conn in conns:
+                # Check if this is a Google Sheets connection
+                is_google_sheets = False
+                
+                # Check various possible structures
+                if hasattr(conn, "auth_config"):
+                    if hasattr(conn.auth_config, "toolkit"):
+                        is_google_sheets = conn.auth_config.toolkit.lower() == "googlesheets"
+                    elif hasattr(conn.auth_config, "app_name"):
+                        is_google_sheets = "googlesheets" in conn.auth_config.app_name.lower()
+                elif isinstance(conn, dict):
+                    auth_config = conn.get("auth_config", {})
+                    is_google_sheets = (
+                        auth_config.get("toolkit", "").lower() == "googlesheets" or
+                        "googlesheets" in auth_config.get("app_name", "").lower()
+                    )
+                
+                if is_google_sheets:
+                    google_sheets_connections.append(conn)
+        
+        connected = len(google_sheets_connections) > 0
+        connection_details = []
+        
+        # Extract connection details for debugging
+        for conn in google_sheets_connections:
+            detail = {"id": None, "status": None}
+            if hasattr(conn, "id"):
+                detail["id"] = conn.id
+            elif isinstance(conn, dict) and "id" in conn:
+                detail["id"] = conn["id"]
+                
+            if hasattr(conn, "status"):
+                detail["status"] = conn.status
+            elif isinstance(conn, dict) and "status" in conn:
+                detail["status"] = conn["status"]
+                
+            connection_details.append(detail)
+        
+        return {
+            "connected": connected,
+            "count": len(google_sheets_connections),
+            "connections": connection_details
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to query connection status: {e}")
 
@@ -250,16 +303,30 @@ def composio_sync_google_sheets(
         # Use provider client; tools.execute is available
         composio, user_id = _get_provider_client()
 
-        # Optional: check connection via API client if available
+        # Check connection via API client
         try:
-            api_client, _ = _get_api_client()
-            conns = getattr(getattr(api_client, "connected_accounts", api_client), "list", lambda: [])()
-            if isinstance(conns, (list, tuple)) and len(conns) == 0:
+            api_client, api_user_id = _get_api_client()
+            conns = api_client.connected_accounts.list(user_id=api_user_id)  # type: ignore[attr-defined]
+            
+            # Check for Google Sheets connections specifically
+            has_google_sheets = False
+            if isinstance(conns, (list, tuple)):
+                for conn in conns:
+                    if hasattr(conn, "auth_config"):
+                        if hasattr(conn.auth_config, "toolkit") and conn.auth_config.toolkit.lower() == "googlesheets":
+                            has_google_sheets = True
+                            break
+                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
+                        has_google_sheets = True
+                        break
+            
+            if not has_google_sheets:
                 raise HTTPException(status_code=400, detail="Google Sheets is not connected. Click 'Connect Google Sheets' and complete consent.")
         except HTTPException:
             raise
-        except Exception:
-            # If the SDK shape doesn't expose list(), just proceed; any auth error will surface below
+        except Exception as e:
+            # If checking fails, proceed anyway; auth errors will surface during API calls
+            print(f"Warning: Could not verify Google Sheets connection: {e}")
             pass
 
         title = os.getenv("COMPOSIO_SHEETS_TITLE", "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
