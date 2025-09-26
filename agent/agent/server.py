@@ -312,7 +312,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     # Use provider tools API
     # Try common param shapes
     created = composio.tools.execute(  # type: ignore[attr-defined]
-        "GOOGLESHEETS_CREATE_GOOGLE_SHEET1", {"title": title}
+        user_id=user_id,
+        tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+        parameters={"title": title}
     )
     spreadsheet_id = (
         (created.get("response_data", {}) or {}).get("spreadsheetId")
@@ -322,7 +324,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     if not spreadsheet_id:
         # Fallback to properties.title shape
         created = composio.tools.execute(  # type: ignore[attr-defined]
-            "GOOGLESHEETS_CREATE_GOOGLE_SHEET1", {"properties": {"title": title}}
+            user_id=user_id,
+            tool="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+            parameters={"properties": {"title": title}}
         )
     spreadsheet_id = (
         (created.get("response_data", {}) or {}).get("spreadsheetId")
@@ -339,7 +343,9 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
 def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str) -> None:
     try:
         found = composio.tools.execute(  # type: ignore[attr-defined]
-            "GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE", {"spreadsheetId": spreadsheet_id, "title": sheet_title}
+            user_id=user_id,
+            tool="GOOGLESHEETS_FIND_WORKSHEET_BY_TITLE",
+            parameters={"spreadsheetId": spreadsheet_id, "title": sheet_title}
         )
         ok = True
         if isinstance(found, dict):
@@ -348,7 +354,9 @@ def _ensure_sheet(composio, user_id: str, spreadsheet_id: str, sheet_title: str)
             raise RuntimeError("not found")
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
-            "GOOGLESHEETS_ADD_SHEET", {"spreadsheetId": spreadsheet_id, "title": sheet_title}
+            user_id=user_id,
+            tool="GOOGLESHEETS_ADD_SHEET",
+            parameters={"spreadsheetId": spreadsheet_id, "title": sheet_title}
         )
 
 
@@ -356,21 +364,26 @@ def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: 
     # Clear
     try:
         composio.tools.execute(  # type: ignore[attr-defined]
-            "GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR", {"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]}
+            user_id=user_id,
+            tool="GOOGLESHEETS_SPREADSHEETS_VALUES_BATCH_CLEAR",
+            parameters={"spreadsheetId": spreadsheet_id, "ranges": [f"{sheet_title}!A:ZZ"]}
         )
     except Exception:
         composio.tools.execute(  # type: ignore[attr-defined]
-            "GOOGLESHEETS_CLEAR_VALUES", {"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"}
+            user_id=user_id,
+            tool="GOOGLESHEETS_CLEAR_VALUES",
+            parameters={"spreadsheetId": spreadsheet_id, "range": f"{sheet_title}!A:ZZ"}
         )
     # Append rows starting at A1
     composio.tools.execute(  # type: ignore[attr-defined]
-        "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-        {
+        user_id=user_id,
+        tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+        parameters={
             "spreadsheetId": spreadsheet_id,
             "range": f"{sheet_title}!A1",
             "valueInputOption": "RAW",
             "values": rows,
-        },
+        }
     )
 
 
@@ -406,14 +419,19 @@ def composio_sync_google_sheets(
                 # Fallback if no auth config ID
                 conns = []
             
-            # Check for Google Sheets connections for this specific user
-            has_google_sheets = False
+            # Since we're filtering by auth_config_id (Google Sheets specific), 
+            # any connections returned should be Google Sheets connections
+            has_google_sheets = len(conns) > 0 if isinstance(conns, (list, tuple)) else False
+            
             print(f"Debug Sync - Total connections found: {len(conns) if isinstance(conns, (list, tuple)) else 0}")
             print(f"Debug Sync - Auth config ID: {auth_config_id}")
             print(f"Debug Sync - User ID: {api_user_id}")
-            if isinstance(conns, (list, tuple)):
+            print(f"Debug Sync - Has Google Sheets: {has_google_sheets}")
+            
+            # Optional: filter by user if needed
+            if has_google_sheets and api_user_id != "default":
+                user_connections = []
                 for conn in conns:
-                    # Check if this connection belongs to our user
                     conn_user_id = None
                     if hasattr(conn, "user_id"):
                         conn_user_id = conn.user_id
@@ -422,38 +440,22 @@ def composio_sync_google_sheets(
                     elif isinstance(conn, dict):
                         conn_user_id = conn.get("user_id") or conn.get("entity_id")
                     
-                    # Skip if this connection is for a different user
-                    if conn_user_id and conn_user_id != api_user_id:
-                        continue
-                    
-                    # Since we're filtering by auth_config_id, these should all be Google Sheets connections
-                    # Default to true since we filtered by auth config
-                    is_google_sheets = True
-                    
-                    # Optional: verify it's actually Google Sheets
-                    if hasattr(conn, "auth_config"):
-                        if hasattr(conn.auth_config, "toolkit"):
-                            is_google_sheets = conn.auth_config.toolkit.lower() == "googlesheets"
-                        elif hasattr(conn.auth_config, "app_name"):
-                            is_google_sheets = "googlesheets" in conn.auth_config.app_name.lower()
-                    elif isinstance(conn, dict):
-                        auth_config = conn.get("auth_config", {})
-                        toolkit = auth_config.get("toolkit", "").lower()
-                        app_name = auth_config.get("app_name", "").lower()
-                        if toolkit or app_name:
-                            is_google_sheets = toolkit == "googlesheets" or "googlesheets" in app_name
-                    
-                    if is_google_sheets:
-                        has_google_sheets = True
-                        break
+                    if conn_user_id == api_user_id:
+                        user_connections.append(conn)
+                
+                has_google_sheets = len(user_connections) > 0
+                print(f"Debug Sync - User-specific connections: {len(user_connections)}")
             
             if not has_google_sheets:
                 raise HTTPException(status_code=400, detail="Google Sheets is not connected. Click 'Connect Google Sheets' and complete consent.")
-        except HTTPException:
+        except HTTPException as he:
+            print(f"Debug Sync - HTTPException caught: {he.status_code}: {he.detail}")
             raise
         except Exception as e:
             # If checking fails, proceed anyway; auth errors will surface during API calls
-            print(f"Warning: Could not verify Google Sheets connection: {e}")
+            print(f"Warning: Could not verify Google Sheets connection: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             pass
 
         title = os.getenv("COMPOSIO_SHEETS_TITLE", "AG-UI Canvas Snapshot").strip() or "AG-UI Canvas Snapshot"
