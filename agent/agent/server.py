@@ -301,7 +301,12 @@ def _get_provider_client():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Composio provider not available: {e}")
     user_id = os.getenv("COMPOSIO_USER_ID", "default")
-    return ComposioSdk(provider=LlamaIndexProvider()), user_id
+    # Initialize with API key if available
+    api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
+    if api_key:
+        return ComposioSdk(api_key=api_key, provider=LlamaIndexProvider()), user_id
+    else:
+        return ComposioSdk(provider=LlamaIndexProvider()), user_id
 
 
 def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
@@ -328,13 +333,80 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
             print(f"Debug - Spreadsheet no longer exists (error: {e}), creating new one")
             # Clear the stale metadata
             _save_gs_meta({})
+    
+    # For creating spreadsheet, try using the API client directly instead of provider
+    try:
+        api_client, api_user_id = _get_api_client()
+        print(f"Debug - Using API client for spreadsheet creation")
+        created = api_client.tools.execute(  # type: ignore[attr-defined]
+            action="GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+            params={"title": title},
+            entity_id=api_user_id
+        )
+        print(f"Debug - API client create result: {created}")
+        
+        if isinstance(created, dict):
+            spreadsheet_id = (
+                created.get("spreadsheetId")
+                or (created.get("response_data", {}) or {}).get("spreadsheetId")
+                or (created.get("data", {}) or {}).get("spreadsheetId")
+                or (created.get("result", {}) or {}).get("spreadsheetId")
+            )
+            
+        if spreadsheet_id:
+            meta["spreadsheetId"] = spreadsheet_id
+            _save_gs_meta(meta)
+            return spreadsheet_id
+    except Exception as e:
+        print(f"Debug - API client creation failed: {e}, falling back to provider client")
     # Use provider tools API
     # Try common param shapes
     print(f"Debug - Creating spreadsheet with title: {title} for user: {user_id}")
+    
+    # Get tool schema to understand the correct parameter structure
+    try:
+        # First, list all Google Sheets tools to find the correct one for creating spreadsheets
+        all_tools = composio.tools.get(user_id=user_id, toolkits=["GOOGLESHEETS"])
+        create_tools = [t for t in all_tools if "create" in t.get("name", "").lower() and "sheet" in t.get("name", "").lower()]
+        print(f"Debug - Found {len(create_tools)} create sheet tools:")
+        for tool in create_tools:
+            print(f"  - {tool.get('slug', 'unknown')}: {tool.get('name', 'unknown')}")
+        
+        # Get specific tool info
+        tool_info = composio.tools.get(user_id=user_id, slug="GOOGLESHEETS_CREATE_GOOGLE_SHEET1")
+        if tool_info and len(tool_info) > 0:
+            print(f"Debug - Tool name: {tool_info[0].get('name', 'unknown')}")
+            print(f"Debug - Tool description: {tool_info[0].get('description', 'no description')}")
+            # Extract parameter schema
+            params = tool_info[0].get('parameters', {})
+            if hasattr(params, 'properties'):
+                print(f"Debug - Parameter properties: {params.properties}")
+            else:
+                print(f"Debug - Parameters: {params}")
+    except Exception as e:
+        print(f"Debug - Could not get tool schema: {e}")
+    
+    # Create spreadsheet with just the title parameter
+    args = {"title": title}
+    print(f"Debug - Attempting to create with tool: GOOGLESHEETS_CREATE_GOOGLE_SHEET1")
+    print(f"Debug - User ID: {user_id}")
+    print(f"Debug - Arguments: {args}")
+    print(f"Debug - Arguments type: {type(args)}")
+    
+    # Check if we have the tool available
+    try:
+        available_tools = composio.tools.get(user_id=user_id, slug="GOOGLESHEETS_CREATE_GOOGLE_SHEET1")
+        if available_tools:
+            print(f"Debug - Tool is available: {len(available_tools)} tool(s) found")
+        else:
+            print("Debug - Tool not found!")
+    except Exception as e:
+        print(f"Debug - Error checking tool availability: {e}")
+    
     created = composio.tools.execute(  # type: ignore[attr-defined]
         "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
         user_id=user_id,
-        arguments={"title": title}
+        arguments=args
     )
     print(f"Debug - Create result type: {type(created)}")
     print(f"Debug - Create result: {created}")
@@ -354,14 +426,35 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
         print(f"Debug - Created response is not a dict, type: {type(created)}")
     
     if not spreadsheet_id:
-        print("Debug - First attempt failed, trying with properties.title format")
-        # Fallback to properties.title shape
+        print("Debug - First attempt failed, trying alternate tool name")
+        # Try without the "1" suffix
         created = composio.tools.execute(  # type: ignore[attr-defined]
-            "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
+            "GOOGLESHEETS_CREATE_GOOGLE_SHEET",
             user_id=user_id,
-            arguments={"properties": {"title": title}}
+            arguments={"title": title}
         )
         print(f"Debug - Second create result: {created}")
+        
+        if isinstance(created, dict):
+            spreadsheet_id = (
+                created.get("spreadsheetId")
+                or (created.get("response_data", {}) or {}).get("spreadsheetId")
+                or (created.get("data", {}) or {}).get("spreadsheetId")
+                or (created.get("result", {}) or {}).get("spreadsheetId")
+            )
+    
+    if not spreadsheet_id:
+        print("Debug - Second attempt failed, trying GOOGLESHEETS_SHEET_FROM_JSON")
+        # Try using the sheet from JSON tool with minimal data
+        created = composio.tools.execute(  # type: ignore[attr-defined]
+            "GOOGLESHEETS_SHEET_FROM_JSON",
+            user_id=user_id,
+            arguments={
+                "spreadsheet_title": title,
+                "sheet_json": [{"placeholder": "This row will be cleared"}]  # Minimal data to satisfy non-empty requirement
+            }
+        )
+        print(f"Debug - Third create result: {created}")
         
         if isinstance(created, dict):
             spreadsheet_id = (

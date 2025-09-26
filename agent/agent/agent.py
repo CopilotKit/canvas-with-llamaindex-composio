@@ -212,12 +212,51 @@ async def syncCanvasSnapshotToGoogleSheets(
                     }
                 )
                 # Try common shapes for result
-                spreadsheet_id = (
-                    created.get("response_data", {}).get("spreadsheetId")
-                    or created.get("data", {}).get("spreadsheetId")
-                    or created.get("spreadsheetId")
-                )
-            except Exception:
+                if isinstance(created, dict):
+                    spreadsheet_id = (
+                        created.get("spreadsheetId")
+                        or created.get("response_data", {}).get("spreadsheetId")
+                        or created.get("data", {}).get("spreadsheetId")
+                        or created.get("result", {}).get("spreadsheetId")
+                    )
+                else:
+                    spreadsheet_id = None
+                    
+                # Try alternate approaches if first attempt fails
+                if not spreadsheet_id:
+                    # Try without the "1" suffix
+                    created = composio.tools.execute(
+                        "GOOGLESHEETS_CREATE_GOOGLE_SHEET",
+                        user_id=user_id,
+                        arguments={"title": title}
+                    )
+                    if isinstance(created, dict):
+                        spreadsheet_id = (
+                            created.get("spreadsheetId")
+                            or created.get("response_data", {}).get("spreadsheetId")
+                            or created.get("data", {}).get("spreadsheetId")
+                            or created.get("result", {}).get("spreadsheetId")
+                        )
+                        
+                if not spreadsheet_id:
+                    # Try using sheet from JSON as last resort
+                    created = composio.tools.execute(
+                        "GOOGLESHEETS_SHEET_FROM_JSON",
+                        user_id=user_id,
+                        arguments={
+                            "spreadsheet_title": title,
+                            "sheet_json": [{"placeholder": "This row will be cleared"}]
+                        }
+                    )
+                    if isinstance(created, dict):
+                        spreadsheet_id = (
+                            created.get("spreadsheetId")
+                            or created.get("response_data", {}).get("spreadsheetId")
+                            or created.get("data", {}).get("spreadsheetId")
+                            or created.get("result", {}).get("spreadsheetId")
+                        )
+            except Exception as e:
+                print(f"Warning: Failed to create spreadsheet: {e}")
                 spreadsheet_id = None
 
             if not spreadsheet_id:
