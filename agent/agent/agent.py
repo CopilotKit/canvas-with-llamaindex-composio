@@ -30,6 +30,11 @@ def update_canvas_state(state: Dict[str, Any]) -> None:
 
 # --- Backend tools (server-side) ---
 
+def test_backend_tool() -> str:
+    """Test backend tool to verify backend tools are working."""
+    print("=== BACKEND TOOL CALLED: test_backend_tool ===")
+    return "Test backend tool executed successfully!"
+
 def sheets_sync_all(**kwargs) -> str:
     """
     Sync all current canvas items to Google Sheets.
@@ -308,12 +313,17 @@ SYSTEM_PROMPT = (
     + FIELD_SCHEMA +
     "\nMUTATION/TOOL POLICY:\n"
     "- When you claim to create/update/delete, you MUST call the corresponding tool(s) (frontend or backend).\n"
-    "- To create new cards, call the frontend tool `createItem` with `type` in {project, entity, note, chart} and optional `name`.\n"
-    "- GOOGLE SHEETS: When asked about Google Sheets, you MUST call the backend tools:\n"
-    "  - 'Create a new Google Sheet' → call sheets_create_new\n"
-    "  - 'Sync to sheets' → call sheets_sync_all\n"
-    "  - 'Get sheet URL' → call sheets_get_url\n"
-    "  - These are BACKEND tools, not frontend tools - you must actually call them!\n"
+    "- To create new cards, call the frontend tool `createItem` with `type` in {project, entity, note, chart} and optional `name`.\n\n"
+    "BACKEND TOOLS (YOU MUST USE THESE):\n"
+    "- You have 5 backend tools:\n"
+    "  1. test_backend_tool - Test tool to verify backend tools work\n"
+    "  2. sheets_create_new - Creates a new Google Sheet\n"
+    "  3. sheets_sync_all - Syncs all canvas items to Google Sheets\n"
+    "  4. sheets_get_url - Gets the URL of the current Google Sheet\n"
+    "  5. sheets_check_auth - Checks if user is authenticated with Google Sheets\n"
+    "- If user says 'test backend', call test_backend_tool\n"
+    "- NEVER make assumptions about authentication status - ALWAYS call sheets_check_auth first\n"
+    "- NEVER say you cannot do something without trying the appropriate tool first\n"
     "- After tools run, rely on the latest shared state (ground truth) when replying.\n"
     "- To set a card's subtitle (never the data fields): use setItemSubtitleOrDescription.\n\n"
     "DESCRIPTION MAPPING:\n"
@@ -321,19 +331,15 @@ SYSTEM_PROMPT = (
     "- For notes: 'content', 'description', 'text', or 'note' refers to note content; use setNoteField1 / appendNoteField1 / clearNoteField1.\n\n"
     "GOOGLE SHEETS INTEGRATION:\n"
     "- Canvas items can be synced to Google Sheets (one row per item).\n"
-    "- CRITICAL: You have backend tools for Google Sheets. ALWAYS call them:\n"
-    "  - When asked to 'Create a new Google Sheet': CALL sheets_create_new\n"
-    "  - When asked to 'Sync to sheets' or similar: CALL sheets_sync_all\n"
-    "  - When asked for 'sheet URL' or 'link': CALL sheets_get_url\n"
-    "  - When checking authentication: CALL sheets_check_auth\n"
-    "- NEVER say 'authentication is required' without FIRST calling sheets_check_auth\n"
-    "- NEVER say 'I cannot create' without FIRST calling sheets_create_new\n"
-    "- These are BACKEND TOOLS - actually call them, don't just talk about them!\n"
-    "- Examples of when to call backend tools:\n"
-    "  - User: 'Create a new Google Sheet' → YOU: call sheets_create_new\n"
-    "  - User: 'auth into google sheets' → YOU: call sheets_check_auth\n"
-    "  - User: 'sync to sheets' → YOU: call sheets_sync_all\n"
-    "  - User: 'what is the sheet URL?' → YOU: call sheets_get_url\n"
+    "- YOU MUST USE THE BACKEND TOOLS:\n"
+    "  - User says 'Create a new Google Sheet' → YOU MUST call sheets_create_new\n"
+    "  - User says 'Sync to sheets' → YOU MUST call sheets_sync_all  \n"
+    "  - User asks for 'sheet URL' → YOU MUST call sheets_get_url\n"
+    "  - User mentions 'auth' or 'login' → YOU MUST call sheets_check_auth\n"
+    "- DO NOT say 'authentication is not properly configured' - call sheets_check_auth instead\n"
+    "- DO NOT say 'I cannot create' - call sheets_create_new instead\n"
+    "- DO NOT talk about what you would do - actually call the tools!\n"
+    "- The tools will handle authentication and provide appropriate responses\n"
     "- The sheet contains: ID, Type, Name, Subtitle, Field1-4, Last Updated, and Raw Data columns.\n\n"
     "STRICT GROUNDING RULES:\n"
     "1) ONLY use shared state (items/globalTitle/globalDescription) as the source of truth.\n"
@@ -375,6 +381,7 @@ agentic_chat_router = get_ag_ui_workflow_router(
         removeChartField1,
     ],
     backend_tools=[
+        FunctionTool.from_defaults(fn=test_backend_tool, name="test_backend_tool"),
         FunctionTool.from_defaults(fn=sheets_sync_all, name="sheets_sync_all"),
         FunctionTool.from_defaults(fn=sheets_get_url, name="sheets_get_url"),
         FunctionTool.from_defaults(fn=sheets_create_new, name="sheets_create_new"),
