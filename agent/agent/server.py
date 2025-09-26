@@ -60,11 +60,24 @@ def composio_connect_google_sheets():
         composio, user_id = _get_api_client()
         # Check if already connected for this user
         try:
-            # List connected accounts for this specific user
-            conns = composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
-            # Check if any account is connected for Google Sheets
+            # List connected accounts
+            conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
+            # Check if any account is connected for Google Sheets for this user
             if conns and isinstance(conns, (list, tuple)):
                 for conn in conns:
+                    # Check if this connection belongs to our user
+                    conn_user_id = None
+                    if hasattr(conn, "user_id"):
+                        conn_user_id = conn.user_id
+                    elif hasattr(conn, "entity_id"):
+                        conn_user_id = conn.entity_id
+                    elif isinstance(conn, dict):
+                        conn_user_id = conn.get("user_id") or conn.get("entity_id")
+                    
+                    # Skip if this connection is for a different user
+                    if conn_user_id and conn_user_id != user_id:
+                        continue
+                    
                     # Check if this is a Google Sheets connection
                     if hasattr(conn, "auth_config") and hasattr(conn.auth_config, "toolkit"):
                         if conn.auth_config.toolkit.lower() == "googlesheets":
@@ -120,13 +133,28 @@ def composio_connect_google_sheets():
 def composio_status_google_sheets():
     try:
         composio, user_id = _get_api_client()
-        # List connected accounts for this specific user
-        conns = composio.connected_accounts.list(user_id=user_id)  # type: ignore[attr-defined]
+        # Get connected accounts for this user
+        # The Composio SDK doesn't support filtering by user_id in list()
+        # All connected accounts under this API key will be returned
+        conns = composio.connected_accounts.list()  # type: ignore[attr-defined]
         
-        # Filter for Google Sheets connections
+        # Filter for Google Sheets connections and optionally by user
         google_sheets_connections = []
         if conns and isinstance(conns, (list, tuple)):
             for conn in conns:
+                # Check if this connection belongs to our user
+                conn_user_id = None
+                if hasattr(conn, "user_id"):
+                    conn_user_id = conn.user_id
+                elif hasattr(conn, "entity_id"):
+                    conn_user_id = conn.entity_id
+                elif isinstance(conn, dict):
+                    conn_user_id = conn.get("user_id") or conn.get("entity_id")
+                
+                # Skip if this connection is for a different user
+                if conn_user_id and conn_user_id != user_id:
+                    continue
+                
                 # Check if this is a Google Sheets connection
                 is_google_sheets = False
                 
@@ -151,7 +179,7 @@ def composio_status_google_sheets():
         
         # Extract connection details for debugging
         for conn in google_sheets_connections:
-            detail = {"id": None, "status": None}
+            detail = {"id": None, "status": None, "user_id": None}
             if hasattr(conn, "id"):
                 detail["id"] = conn.id
             elif isinstance(conn, dict) and "id" in conn:
@@ -162,7 +190,24 @@ def composio_status_google_sheets():
             elif isinstance(conn, dict) and "status" in conn:
                 detail["status"] = conn["status"]
                 
+            # Include user/entity ID for debugging
+            if hasattr(conn, "user_id"):
+                detail["user_id"] = conn.user_id
+            elif hasattr(conn, "entity_id"):
+                detail["user_id"] = conn.entity_id
+            elif isinstance(conn, dict):
+                detail["user_id"] = conn.get("user_id") or conn.get("entity_id")
+                
             connection_details.append(detail)
+        
+        # Debug: log all connections to understand the structure
+        if conns and isinstance(conns, (list, tuple)) and len(conns) > 0:
+            sample_conn = conns[0]
+            print(f"Debug - Sample connection type: {type(sample_conn)}")
+            if hasattr(sample_conn, "__dict__"):
+                print(f"Debug - Sample connection attributes: {list(sample_conn.__dict__.keys())}")
+            elif isinstance(sample_conn, dict):
+                print(f"Debug - Sample connection keys: {list(sample_conn.keys())}")
         
         return {
             "connected": connected,
@@ -306,12 +351,25 @@ def composio_sync_google_sheets(
         # Check connection via API client
         try:
             api_client, api_user_id = _get_api_client()
-            conns = api_client.connected_accounts.list(user_id=api_user_id)  # type: ignore[attr-defined]
+            conns = api_client.connected_accounts.list()  # type: ignore[attr-defined]
             
-            # Check for Google Sheets connections specifically
+            # Check for Google Sheets connections for this specific user
             has_google_sheets = False
             if isinstance(conns, (list, tuple)):
                 for conn in conns:
+                    # Check if this connection belongs to our user
+                    conn_user_id = None
+                    if hasattr(conn, "user_id"):
+                        conn_user_id = conn.user_id
+                    elif hasattr(conn, "entity_id"):
+                        conn_user_id = conn.entity_id
+                    elif isinstance(conn, dict):
+                        conn_user_id = conn.get("user_id") or conn.get("entity_id")
+                    
+                    # Skip if this connection is for a different user
+                    if conn_user_id and conn_user_id != api_user_id:
+                        continue
+                    
                     if hasattr(conn, "auth_config"):
                         if hasattr(conn.auth_config, "toolkit") and conn.auth_config.toolkit.lower() == "googlesheets":
                             has_google_sheets = True
