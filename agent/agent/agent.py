@@ -68,12 +68,21 @@ def _load_composio_tools() -> List[Any]:
     try:
         # First check if we have a connected Google Sheets account
         api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
-        if api_key:
+        auth_config_id = os.getenv("COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID", "").strip()
+        if api_key and auth_config_id:
             # Use API client to check connections
             api_composio = Composio(api_key=api_key)
-            conns = api_composio.connected_accounts.list()  # type: ignore[attr-defined]
+            result = api_composio.connected_accounts.list(auth_config_ids=[auth_config_id])  # type: ignore[attr-defined]
+            # Access items property if it exists
+            if hasattr(result, "items"):
+                conns = result.items if result.items is not None else []
+            elif isinstance(result, list):
+                conns = result
+            else:
+                conns = []
             
             # Check for Google Sheets connection for this user
+            # Since we're filtering by auth_config_id, these should all be Google Sheets connections
             has_google_sheets = False
             if conns and isinstance(conns, (list, tuple)):
                 for conn in conns:
@@ -90,17 +99,16 @@ def _load_composio_tools() -> List[Any]:
                     if conn_user_id and conn_user_id != user_id:
                         continue
                     
-                    if hasattr(conn, "auth_config") and hasattr(conn.auth_config, "toolkit"):
-                        if conn.auth_config.toolkit.lower() == "googlesheets":
-                            has_google_sheets = True
-                            break
-                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
-                        has_google_sheets = True
-                        break
+                    # Since we filtered by auth_config_id, this is a Google Sheets connection
+                    has_google_sheets = True
+                    break
             
             if not has_google_sheets:
                 print("Warning: No Google Sheets connection found for user:", user_id)
                 return []
+        else:
+            print("Warning: Missing COMPOSIO_API_KEY or COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID")
+            return []
         
         # Load tools using the provider
         composio = Composio(provider=LlamaIndexProvider())
@@ -142,10 +150,19 @@ async def syncCanvasSnapshotToGoogleSheets(
     try:
         from composio import Composio  # type: ignore
         api_key = os.getenv("COMPOSIO_API_KEY", "").strip()
-        if api_key:
+        auth_config_id = os.getenv("COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID", "").strip()
+        if api_key and auth_config_id:
             api_composio = Composio(api_key=api_key)
-            conns = api_composio.connected_accounts.list()  # type: ignore[attr-defined]
+            result = api_composio.connected_accounts.list(auth_config_ids=[auth_config_id])  # type: ignore[attr-defined]
+            # Access items property if it exists
+            if hasattr(result, "items"):
+                conns = result.items if result.items is not None else []
+            elif isinstance(result, list):
+                conns = result
+            else:
+                conns = []
             
+            # Since we're filtering by auth_config_id, these should all be Google Sheets connections
             has_google_sheets = False
             if conns and isinstance(conns, (list, tuple)):
                 for conn in conns:
@@ -162,18 +179,16 @@ async def syncCanvasSnapshotToGoogleSheets(
                     if conn_user_id and conn_user_id != user_id:
                         continue
                     
-                    if hasattr(conn, "auth_config") and hasattr(conn.auth_config, "toolkit"):
-                        if conn.auth_config.toolkit.lower() == "googlesheets":
-                            has_google_sheets = True
-                            break
-                    elif isinstance(conn, dict) and conn.get("auth_config", {}).get("toolkit", "").lower() == "googlesheets":
-                        has_google_sheets = True
-                        break
+                    # Since we filtered by auth_config_id, this is a Google Sheets connection
+                    has_google_sheets = True
+                    break
             
             if not has_google_sheets:
                 raise RuntimeError("Google Sheets is not connected. Please connect Google Sheets first through the UI.")
+        else:
+            raise RuntimeError("Missing COMPOSIO_API_KEY or COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID environment variables.")
     except Exception as e:
-        if "not connected" in str(e).lower():
+        if "not connected" in str(e).lower() or "missing composio" in str(e).lower():
             raise
         # If we can't check, proceed anyway and let the actual API call fail if needed
         pass
