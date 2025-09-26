@@ -1,6 +1,6 @@
 # CopilotKit <> LlamaIndex AG-UI Canvas with Composio
 
-This is a starter template for building AI-powered canvas applications using [LlamaIndex](https://llamaindex.com), [CopilotKit](https://copilotkit.ai), and [Composio](https://composio.dev). It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization and external tool integrations through Composio.
+This is a starter template for building AI-powered canvas applications using [LlamaIndex](https://llamaindex.ai), [CopilotKit](https://copilotkit.ai), and [Composio](https://composio.dev). It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization and external tool integrations through Composio.
 
 https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 
@@ -286,7 +286,7 @@ sequenceDiagram
 
 ## 📚 Documentation
 
-- [LlamaIndex Documentation](https://docs.llamaindex.com/introduction) - Learn more about LlamaIndex and its features
+- [LlamaIndex Documentation](https://developers.llamaindex.ai/python/workflows) - Learn more about LlamaIndex and its features
 - [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
 - [Composio Documentation](https://docs.composio.dev) - Learn about Composio's tool integrations
 - [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
