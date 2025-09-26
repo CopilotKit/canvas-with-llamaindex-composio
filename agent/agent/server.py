@@ -308,33 +308,66 @@ def _ensure_spreadsheet(composio, user_id: str, title: str) -> str:
     meta = _load_gs_meta()
     spreadsheet_id = meta.get("spreadsheetId")
     if spreadsheet_id:
-        return spreadsheet_id
+        print(f"Debug - Using existing spreadsheet ID from metadata: {spreadsheet_id}")
+        # Verify the spreadsheet still exists
+        try:
+            info = composio.tools.execute(  # type: ignore[attr-defined]
+                user_id,
+                "GOOGLESHEETS_GET_SPREADSHEET_INFO",
+                {"spreadsheetId": spreadsheet_id}
+            )
+            print(f"Debug - Spreadsheet exists, continuing with ID: {spreadsheet_id}")
+            return spreadsheet_id
+        except Exception as e:
+            print(f"Debug - Spreadsheet no longer exists (error: {e}), creating new one")
+            # Clear the stale metadata
+            _save_gs_meta({})
     # Use provider tools API
     # Try common param shapes
+    print(f"Debug - Creating spreadsheet with title: {title} for user: {user_id}")
     created = composio.tools.execute(  # type: ignore[attr-defined]
         user_id,
         "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
         {"title": title}
     )
-    spreadsheet_id = (
-        (created.get("response_data", {}) or {}).get("spreadsheetId")
-        or (created.get("data", {}) or {}).get("spreadsheetId")
-        or created.get("spreadsheetId")
-    )
+    print(f"Debug - Create result type: {type(created)}")
+    print(f"Debug - Create result: {created}")
+    
+    # Try to extract spreadsheet ID from various response formats
+    if isinstance(created, dict):
+        # Try different paths
+        spreadsheet_id = (
+            created.get("spreadsheetId")
+            or (created.get("response_data", {}) or {}).get("spreadsheetId")
+            or (created.get("data", {}) or {}).get("spreadsheetId")
+            or (created.get("result", {}) or {}).get("spreadsheetId")
+        )
+        print(f"Debug - Extracted spreadsheet ID: {spreadsheet_id}")
+    else:
+        spreadsheet_id = None
+        print(f"Debug - Created response is not a dict, type: {type(created)}")
+    
     if not spreadsheet_id:
+        print("Debug - First attempt failed, trying with properties.title format")
         # Fallback to properties.title shape
         created = composio.tools.execute(  # type: ignore[attr-defined]
             user_id,
             "GOOGLESHEETS_CREATE_GOOGLE_SHEET1",
             {"properties": {"title": title}}
         )
-    spreadsheet_id = (
-        (created.get("response_data", {}) or {}).get("spreadsheetId")
-        or (created.get("data", {}) or {}).get("spreadsheetId")
-        or created.get("spreadsheetId")
-    )
+        print(f"Debug - Second create result: {created}")
+        
+        if isinstance(created, dict):
+            spreadsheet_id = (
+                created.get("spreadsheetId")
+                or (created.get("response_data", {}) or {}).get("spreadsheetId")
+                or (created.get("data", {}) or {}).get("spreadsheetId")
+                or (created.get("result", {}) or {}).get("spreadsheetId")
+            )
+    
     if not spreadsheet_id:
-        raise RuntimeError("Unable to create spreadsheet (no id returned)")
+        print(f"Debug - Failed to extract spreadsheet ID from response")
+        raise RuntimeError(f"Unable to create spreadsheet (no id returned). Response: {created}")
     meta["spreadsheetId"] = spreadsheet_id
     _save_gs_meta(meta)
     return spreadsheet_id
@@ -376,9 +409,9 @@ def _clear_and_append(composio, user_id: str, spreadsheet_id: str, sheet_title: 
         )
     # Append rows starting at A1
     composio.tools.execute(  # type: ignore[attr-defined]
-        user_id=user_id,
-        tool="GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
-        parameters={
+        user_id,
+        "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+        {
             "spreadsheetId": spreadsheet_id,
             "range": f"{sheet_title}!A1",
             "valueInputOption": "RAW",
@@ -476,11 +509,12 @@ def composio_sync_google_sheets(
             ])
 
         # Create spreadsheet if needed and ensure sheet exists
-        spreadsheet_id = _ensure_spreadsheet(composio, user_id, title)
         try:
+            spreadsheet_id = _ensure_spreadsheet(composio, user_id, title)
             _ensure_sheet(composio, user_id, spreadsheet_id, sheet_title)
-        except Exception:
-            # If sheet creation fails due to stale spreadsheet id, reset and recreate
+        except Exception as e:
+            print(f"Debug - Error during spreadsheet/sheet creation: {e}")
+            # If creation fails, reset metadata and try again
             _save_gs_meta({})
             spreadsheet_id = _ensure_spreadsheet(composio, user_id, title)
             _ensure_sheet(composio, user_id, spreadsheet_id, sheet_title)
