@@ -19,11 +19,11 @@ export function defaultDataFor(type: CardType): ItemData {
   switch (type) {
     case "project":
       return {
-        field1: "",
-        field2: "",
-        field3: "",
-        field4: [],
-        field4_id: 0,
+        company: "",
+        industry: "",
+        email: "",
+        requirements: [],
+        requirements_id: 0,
       } as ProjectData;
     case "entity":
       return {
@@ -40,7 +40,6 @@ export function defaultDataFor(type: CardType): ItemData {
       return { field1: "" } as NoteData;
   }
 }
-
 
 
 

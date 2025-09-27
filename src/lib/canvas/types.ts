@@ -13,11 +13,11 @@ export interface LinkItem {
 export type CardType = "project" | "entity" | "note" | "chart";
 
 export interface ProjectData {
-  field1: string; // text
-  field2: string; // select
-  field3: string; // date
-  field4: ChecklistItem[]; // checklist
-  field4_id: number; // id counter
+  company: string; // company name
+  industry: string; // select
+  email: string; // contact email
+  requirements: ChecklistItem[]; // checklist of requirements
+  requirements_id: number; // id counter
 }
 
 // Back-compat alias for code referring to BuyerData
@@ -64,6 +64,5 @@ export interface AgentState {
   syncSheetId?: string; // Google Sheet ID for auto-sync
   syncSheetName?: string; // Google Sheet name that was imported from
 }
-
 
 

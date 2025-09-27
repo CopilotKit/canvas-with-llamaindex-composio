@@ -103,23 +103,23 @@ export function CardRenderer(props: {
         <div className="mb-3">
           <label className="mb-1 block text-xs font-medium text-gray-500">Company</label>
           <input
-            value={d.field1}
-            onChange={(e) => set({ field1: e.target.value })}
+            value={d.company}
+            onChange={(e) => set({ company: e.target.value })}
             className="w-full rounded-md border px-2 py-1.5 text-sm outline-none transition-colors placeholder:text-gray-400 hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent focus:placeholder:text-accent/65"
-            placeholder="Field 1 value"
+            placeholder="Company name"
           />
         </div>
         <div className="contents @xs:grid gap-3 md:grid-cols-2">
           <div className="@max-xs:mb-3">
             <label className="mb-1 block text-xs font-medium text-gray-500">Industry</label>
             <select
-              value={d.field2}
-              onChange={(e) => set({ field2: e.target.value })}
+              value={d.industry}
+              onChange={(e) => set({ industry: e.target.value })}
               required
               className="w-full rounded-md border px-2 py-1.5 text-sm outline-none transition-colors hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent invalid:text-gray-400"
             >
               <option value="">Select...</option>
-              {["Option A", "Option B", "Option C"].map((opt) => (
+              {["SaaS","Fintech","Healthcare","E-commerce","Manufacturing","Education","Other"].map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
@@ -128,8 +128,8 @@ export function CardRenderer(props: {
             <label className="mb-1 block text-xs font-medium text-gray-500">Contact Email</label>
             <input
               type="email"
-              value={d.field3}
-              onChange={(e) => set({ field3: e.target.value })}
+              value={d.email}
+              onChange={(e) => set({ email: e.target.value })}
               required
               className="w-full rounded-md border px-2 py-1.5 text-sm outline-none transition-colors hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent invalid:text-gray-400"
             />
@@ -148,12 +148,12 @@ export function CardRenderer(props: {
             </button>
           </div>
           <div className="space-y-2">
-            {(!d.field4 || d.field4.length === 0) && (
+            {(!d.requirements || d.requirements.length === 0) && (
               <div className="grid place-items-center py-1.75 text-xs text-primary/50 font-medium text-pretty">
                 Nothing here yet. Add a checklist item to get started.
               </div>
             )}
-            {(d.field4 ?? []).map((c, i) => (
+            {(d.requirements ?? []).map((c, i) => (
               <div key={c.id} className="flex items-center gap-3">
                 <span className="text-xs font-mono text-muted-foreground/80">{String(c.id ?? String(i + 1)).padStart(3, "0")}</span>
                 <input
@@ -236,5 +236,4 @@ export function CardRenderer(props: {
 }
 
 export default CardRenderer;
-
 
