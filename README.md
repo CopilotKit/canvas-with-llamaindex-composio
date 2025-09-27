@@ -86,6 +86,7 @@ Before getting started, you'll need to the following.
 
     <table>
     <tbody>
+    <tr></tr>
     <tr>
     <td>
     <details>
@@ -152,6 +153,7 @@ Before getting started, you'll need to the following.
 
     <table>
     <tbody>
+    <tr></tr>
     <tr>
     <td>
     <details>
