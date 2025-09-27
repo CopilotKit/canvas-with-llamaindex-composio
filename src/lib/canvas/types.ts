@@ -20,6 +20,9 @@ export interface ProjectData {
   field4_id: number; // id counter
 }
 
+// Back-compat alias for code referring to BuyerData
+export type BuyerData = ProjectData;
+
 export interface EntityData {
   field1: string; // text
   field2: string; // select
@@ -61,7 +64,6 @@ export interface AgentState {
   syncSheetId?: string; // Google Sheet ID for auto-sync
   syncSheetName?: string; // Google Sheet name that was imported from
 }
-
 
 
 
