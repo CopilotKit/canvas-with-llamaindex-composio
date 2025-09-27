@@ -6,7 +6,7 @@ export const initialState: AgentState = {
   globalDescription: "",
   lastAction: "",
   itemsCreated: 0,
-  syncSheetId: "",
+  syncSheetId: "1NE3emOdGnk4TXHRQeJIoW1MRgdLgGcEoBRWLeRZvKas",
 };
 
 export function isNonEmptyAgentState(value: unknown): value is AgentState {
@@ -40,6 +40,5 @@ export function defaultDataFor(type: CardType): ItemData {
       return { field1: "" } as NoteData;
   }
 }
-
 
 
