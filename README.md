@@ -84,15 +84,21 @@ Before getting started, you'll need to the following.
 
     For the next step you'll need a Composio API key, auth config ID, and user ID.
 
+    <table>
+    <tbody>
+    <tr>
+    <td>
     <details>
 
-    <summary>Show me how ->
-    
-    </summary>
+    <summary>&nbsp;&nbsp;<strong>Show me how</strong></summary><br>
 
     https://github.com/user-attachments/assets/159cec99-7ba2-4ee2-83dd-2d86e51afea1
 
     </details>
+    </td>
+    </tr>
+    </tbody>
+    </table>
 
 3. Set up your environment variables:
 
@@ -140,41 +146,46 @@ Before getting started, you'll need to the following.
 
     This will start both the UI and agent servers concurrently.
 
-5. ✅ You're done!
+5. You're done! ✅
 
     Open http://localhost:3000 to use the starter and try it out!
 
+    <table>
+    <tbody>
+    <tr>
+    <td>
     <details>
     
-    <summary>
-    Using the canvas starter-> 
-    
-    </summary>
+    <summary>&nbsp;&nbsp;<strong>Using the canvas starter</strong></summary><br>
 
     Once the application is running, you can:
 
-    1. **Create Cards**: Use the "New Item" button or ask the AI to create cards
-    - "Create a new project"
-    - "Add an entity and a note"
-    - "Create a chart with sample metrics"
+    - **Create Cards**: Use the "New Item" button or ask the AI to create cards
+        - "Create a new project"
+        - "Add an entity and a note"
+        - "Create a chart with sample metrics"
 
-    1. **Edit Cards**: Click on any field to edit directly, or ask the AI
-    - "Set the project field1 to 'Q1 Planning'"
-    - "Add a checklist item 'Review budget'"
-    - "Update the chart metrics"
+    - **Edit Cards**: Click on any field to edit directly, or ask the AI
+        - "Set the project field1 to 'Q1 Planning'"
+        - "Add a checklist item 'Review budget'"
+        - "Update the chart metrics"
 
-    1. **Sync with Google Sheets**: Use the Google Sheets button or ask the AI
-    - "Create a new Google Sheet" - Creates a sheet for syncing canvas data
-    - "Sync all items to Google Sheets" - Syncs current canvas state to the sheet
-    - "Get the sheet URL" - Retrieves the Google Sheets link
+    - **Sync with Google Sheets**: Use the Google Sheets button or ask the AI
+        - "Create a new Google Sheet" - Creates a sheet for syncing canvas data
+        - "Sync all items to Google Sheets" - Syncs current canvas state to the sheet
+        - "Get the sheet URL" - Retrieves the Google Sheets link
 
-    1. **Execute Plans**: Give the AI multi-step instructions
-    - "Create 3 projects with different priorities and add 2 checklist items to each"
-    - The AI will create a plan and execute it step by step with visual progress
+    - **Execute Plans**: Give the AI multi-step instructions
+        - "Create 3 projects with different priorities and add 2 checklist items to each"
+        - The AI will create a plan and execute it step by step with visual progress
 
-    1. **View JSON**: Toggle between the visual canvas and JSON view using the button at the bottom
+    - **View JSON**: Toggle between the visual canvas and JSON view using the button at the bottom
 
     </details>
+    </td>
+    </tr>
+    </tbody>
+    </table>
 
 ### Available Scripts
 The following scripts can also be run using your preferred package manager:
@@ -189,9 +200,13 @@ The following scripts can also be run using your preferred package manager:
 
 ### Architecture Overview
 
+<table>
+<tbody>
+<tr>
+<td width="10000">
 <details>
 
-<summary>High-level -></summary>
+<summary>&nbsp;&nbsp;<strong>High-level</strong></summary><br>
 
 ```mermaid
 graph TB
@@ -243,10 +258,14 @@ graph TB
     click Agent "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py"
 ```
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Data flow -> </summary>
+<summary>&nbsp;&nbsp;<strong>Data flow</strong></summary><br>
 
 ```mermaid
 sequenceDiagram
@@ -299,12 +318,17 @@ The agent logic is in [`agent/agent/agent.py`](https://github.com/CopilotKit/can
 - **Planning System**: Can create and execute multi-step plans with status tracking
 - **FastAPI Router**: Uses `get_ag_ui_workflow_router` for seamless integration
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Schema -></summary>
+<summary>&nbsp;&nbsp;<strong>Schema</strong></summary><br>
 
-#### Card Field Schema
+**Card Field Schema**
+
 Each card type has specific fields defined in the agent:
 - **Project**: field1 (text), field2 (select), field3 (date), field4 (checklist)
 - **Entity**: field1 (text), field2 (select), field3 (tags), field3_options (available tags)
@@ -312,12 +336,20 @@ Each card type has specific fields defined in the agent:
 - **Chart**: field1 (array of metrics with label and value 0-100)
 
 </details>
+</td>
+</tr>
+</tbody>
+</table>
 
 ### Concepts
 
+<table>
+<tbody>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Backend tools -></summary>
+<summary>&nbsp;&nbsp;<strong>Backend tools</strong></summary><br>
 
 With LlamaIndex's `get_ag_ui_workflow_router`, you can define backend tools.
 
@@ -352,10 +384,14 @@ const Main = () => {
 ```
   
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Frontend tools -></summary>
+<summary>&nbsp;&nbsp;<strong>Frontend tools</strong></summary><br>
 
 With LlamaIndex's `get_ag_ui_workflow_router`, you can also define frontend tools. They get called by the agent
 but handled on the frontend.
@@ -396,12 +432,20 @@ const Main = () => {
 ```
   
 </details>
+</td>
+</tr>
+</tbody>
+</table>
 
 ### Customization Guide
 
+<table>
+<tbody>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Adding New Card Types -></summary>
+<summary>&nbsp;&nbsp;<strong>Adding New Card Types</strong></summary><br>
 
 1. Define the data schema in [`src/lib/canvas/types.ts`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/lib/canvas/types.ts)
 2. Add the card type to the `CardType` union
@@ -410,20 +454,28 @@ const Main = () => {
 5. Add corresponding frontend actions in [`src/app/page.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx)
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Modifying Existing Cards -></summary>
+<summary>&nbsp;&nbsp;<strong>Modifying Existing Cards</strong></summary><br>
 
-- Field definitions are in the agent's FIELD_SCHEMA constant
+- Field definitions are in the agent's `FIELD_SCHEMA` constant
 - UI components are in [`CardRenderer.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/components/canvas/CardRenderer.tsx)
 - Frontend actions follow the pattern: `set[Type]Field[Number]`
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Styling -></summary>
+<summary>&nbsp;&nbsp;<strong>Styling</strong></summary><br>
 
 - Global styles: [`src/app/globals.css`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/globals.css)
 - Component styles use Tailwind CSS with shadcn/ui components
@@ -431,20 +483,32 @@ const Main = () => {
 - See CopilotKit's [customization docs](https://docs.copilotkit.ai/llamaindex/custom-look-and-feel/customize-built-in-ui-components) for the chat window
 
 </details>
+</td>
+</tr>
+</tbody>
+</table>
 
 ## Troubleshooting
 
+<table>
+<tbody>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Setup errors -></summary>
+<summary>&nbsp;&nbsp;<strong>Setup errors</strong></summary><br>
 
 If you encounter errors while setting up the project, make sure you have all the [Prerequisites](#prerequisites) installed. Missing prerequisites like Node.js, Python, or `uv` can cause installation or build failures.
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Agent connection issues -></summary>
+<summary>&nbsp;&nbsp;<strong>Agent connection issues</strong></summary><br>
 
 If you see "I'm having trouble connecting to my tools", make sure:
 1. The LlamaIndex agent is running on port 9000 (check terminal output)
@@ -452,10 +516,14 @@ If you see "I'm having trouble connecting to my tools", make sure:
 3. Both servers started successfully (UI and agent)
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Port already in use -></summary>
+<summary>&nbsp;&nbsp;<strong>Port already in use</strong></summary><br>
 
 If you see "[Errno 48] Address already in use":
 1. The agent might still be running from a previous session
@@ -463,10 +531,14 @@ If you see "[Errno 48] Address already in use":
 3. For the UI port: `lsof -ti:3000 | xargs kill -9`
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>State synchronization issues -></summary>
+<summary>&nbsp;&nbsp;<strong>State synchronization issues</strong></summary><br>
 
 If the canvas and AI seem out of sync:
 1. Check the browser console for errors
@@ -474,22 +546,30 @@ If the canvas and AI seem out of sync:
 3. Verify the agent is using the latest shared state (not cached values)
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Google Sheets integration issues -></summary>
+<summary>&nbsp;&nbsp;<strong>Google Sheets integration issues</strong></summary><br>
 
 If Google Sheets sync is not working:
 1. Verify your Composio API key is set correctly in `agent/.env`
 2. Check if you need to authenticate with Google Sheets (the agent will provide an auth URL)
-3. Ensure the `COMPOSIO_USER_ID` is set (defaults to "default")
+3. Ensure the `COMPOSIO_USER_ID` is set (defaults to `"default"`)
 4. For first-time setup, you may need to configure Google Sheets auth in your Composio dashboard
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Python dependencies -></summary>
+<summary>&nbsp;&nbsp;<strong>Python dependencies</strong></summary><br>
 
 If you encounter Python import errors:
 ```bash
@@ -498,10 +578,14 @@ uv sync
 ```
 
 </details>
-
+</td>
+</tr>
+<tr></tr>
+<tr>
+<td width="10000">
 <details>
 
-<summary>Dependency conflicts -></summary>
+<summary>&nbsp;&nbsp;<strong>Dependency conflicts</strong></summary><br>
 
 If issues persist, recreate the virtual environment:
 
@@ -513,6 +597,10 @@ uv sync
 ```
 
 </details>
+</td>
+</tr>
+</tbody>
+</table>
 
 ---
 
