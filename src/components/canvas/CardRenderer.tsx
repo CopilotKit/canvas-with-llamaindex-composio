@@ -101,7 +101,7 @@ export function CardRenderer(props: {
     return (
       <div className="mt-4 @container">
         <div className="mb-3">
-          <label className="mb-1 block text-xs font-medium text-gray-500">Field 1 (Text)</label>
+          <label className="mb-1 block text-xs font-medium text-gray-500">Company</label>
           <input
             value={d.field1}
             onChange={(e) => set({ field1: e.target.value })}
@@ -111,7 +111,7 @@ export function CardRenderer(props: {
         </div>
         <div className="contents @xs:grid gap-3 md:grid-cols-2">
           <div className="@max-xs:mb-3">
-            <label className="mb-1 block text-xs font-medium text-gray-500">Field 2 (Select)</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Industry</label>
             <select
               value={d.field2}
               onChange={(e) => set({ field2: e.target.value })}
@@ -125,9 +125,9 @@ export function CardRenderer(props: {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Field 3 (Date)</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">Contact Email</label>
             <input
-              type="date"
+              type="email"
               value={d.field3}
               onChange={(e) => set({ field3: e.target.value })}
               required
@@ -137,7 +137,7 @@ export function CardRenderer(props: {
         </div>
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between">
-            <label className="block text-xs font-medium text-gray-500">Field 4 (checklist)</label>
+            <label className="block text-xs font-medium text-gray-500">Requirements</label>
             <button
               type="button"
               className="inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
@@ -206,7 +206,7 @@ export function CardRenderer(props: {
           className="w-full rounded-md border px-2 py-1.5 text-sm outline-none transition-colors hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent invalid:text-gray-400"
         >
           <option value="">Select...</option>
-          {["Option A", "Option B", "Option C"].map((opt) => (
+          {["SaaS","Fintech","Healthcare","E-commerce","Manufacturing","Education","Other"].map((opt) => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
@@ -236,7 +236,5 @@ export function CardRenderer(props: {
 }
 
 export default CardRenderer;
-
-
 
 
