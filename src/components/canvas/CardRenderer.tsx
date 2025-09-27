@@ -101,6 +101,15 @@ export function CardRenderer(props: {
     return (
       <div className="mt-4 @container">
         <div className="mb-3">
+          <label className="mb-1 block text-xs font-medium text-gray-500">Contact Name</label>
+          <input
+            value={d.name}
+            onChange={(e) => set({ name: e.target.value })}
+            className="w-full rounded-md border px-2 py-1.5 text-sm outline-none transition-colors placeholder:text-gray-400 hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent focus:placeholder:text-accent/65"
+            placeholder="Full name"
+          />
+        </div>
+        <div className="mb-3">
           <label className="mb-1 block text-xs font-medium text-gray-500">Company</label>
           <input
             value={d.company}
@@ -134,6 +143,16 @@ export function CardRenderer(props: {
               className="w-full rounded-md border px-2 py-1.5 text-sm outline-none transition-colors hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent invalid:text-gray-400"
             />
           </div>
+        </div>
+        <div className="mt-4">
+          <label className="mb-1 block text-xs font-medium text-gray-500">Use case</label>
+          <TextareaAutosize
+            value={d.use_case}
+            onChange={(e) => set({ use_case: e.target.value })}
+            placeholder="What problem are they trying to solve?"
+            className="min-h-24 w-full resize-none rounded-md border bg-white/60 p-3 text-sm leading-6 outline-none placeholder:text-gray-400 transition-colors hover:ring-1 hover:ring-border focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10 focus:text-accent focus:placeholder:text-accent/65"
+            minRows={4}
+          />
         </div>
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between">
@@ -236,4 +255,3 @@ export function CardRenderer(props: {
 }
 
 export default CardRenderer;
-

@@ -22,6 +22,8 @@ export function defaultDataFor(type: CardType): ItemData {
         company: "",
         industry: "",
         email: "",
+        name: "",
+        use_case: "",
         requirements: [],
         requirements_id: 0,
       } as ProjectData;
@@ -40,5 +42,4 @@ export function defaultDataFor(type: CardType): ItemData {
       return { field1: "" } as NoteData;
   }
 }
-
 

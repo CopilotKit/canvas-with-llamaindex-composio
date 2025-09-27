@@ -16,6 +16,8 @@ export interface ProjectData {
   company: string; // company name
   industry: string; // select
   email: string; // contact email
+  name: string; // contact or buyer name
+  use_case: string; // short description of the use case
   requirements: ChecklistItem[]; // checklist of requirements
   requirements_id: number; // id counter
 }
@@ -64,5 +66,4 @@ export interface AgentState {
   syncSheetId?: string; // Google Sheet ID for auto-sync
   syncSheetName?: string; // Google Sheet name that was imported from
 }
-
 
