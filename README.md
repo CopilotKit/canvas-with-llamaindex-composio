@@ -1,29 +1,48 @@
-# CopilotKit <> LlamaIndex AG-UI Canvas with Composio
+# Fullstack Agents Hackathon Starter
 
-This is a starter template for building AI-powered canvas applications using [LlamaIndex](https://llamaindex.ai), [CopilotKit](https://copilotkit.ai), and [Composio](https://composio.dev). It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization and external tool integrations through Composio.
+Welcome to the Fullstack Agents hackathon! This starter gives you a complete AI-powered canvas application with real-world integrations. Utilizing [LlamaIndex](https://developers.llamaindex.ai), [Composio](https://docs.composio.dev), and [CopilotKit](https://docs.copilotkit.ai). 
+
+## About this starter
+This is a starter template for building AI-powered canvas applications using LlamaIndex, CopilotKit, and Composio. It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization and external tool integrations (Google Sheets, for this example) through Composio.
 
 https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 
-## 🚀 Key Features
+### LlamaIndex
+LlamaIndex is a framework for building generative AI applications, in particular Document Agents, i.e. agents that process unstructured data like PDFs, PowerPoints, Word files and more. The core framework has adapters for loading and storing data, while the Workflows framework provides a way to build an agent or multi-agent system and control how data moves around. Both frameworks can make use of LlamaCloud, an enterprise offering that provides RAG and structured data extraction as a service.
 
-- **Visual Canvas Interface**: Drag-free canvas displaying cards in a responsive grid layout
-- **Four Card Types**: 
-  - **Project**: Includes text fields, dropdown, date picker, and checklist
-  - **Entity**: Features text fields, dropdown, and multi-select tags
-  - **Note**: Simple rich text content area
-  - **Chart**: Visual metrics with percentage-based bar charts
-- **Real-time AI Sync**: Bidirectional synchronization between the AI agent and UI canvas
-- **External Tool Integration**: Powered by Composio for seamless integration with external services
-- **Google Sheets Sync**: Automatically sync canvas items to Google Sheets with one-way data flow
-- **Multi-step Planning**: AI can create and execute plans with visual progress tracking
-- **Human-in-the-Loop (HITL)**: Intelligent interrupts for clarification when needed
-- **JSON View**: Toggle between visual canvas and raw JSON state
-- **Responsive Design**: Optimized for both desktop (sidebar chat) and mobile (popup chat)
+[LlamaIndex ->](https://composio.dev/)
 
-## Prerequisites
+### Composio
+Composio is the fastest way to enable your AI agents to take real-world actions—without dealing with individual API integrations, authentication flows, or complex tool formatting. It provides access 3000+ tools out of the box across popular apps like Slack, GitHub, Notion, and more.
 
-- Node.js 18+ 
-- Python 3.8+
+[More about Composio ->](https://composio.dev/)
+
+### CopilotKit
+CopilotKit connects your app's logic, state, and user context to the AI agents that deliver the animated and interactive part of your app experience — across both embedded UIs and fully headless interfaces. It gives you the tools to build, deploy, and monitor AI-assisted features that feel intuitive, helpful, and deeply integrated.
+
+[More about CopilotKit ->](https://copilotkit.ai)
+
+### Getting Started
+
+This repository is designed to help you hit the ground running for the hackathon. Use it as a foundation for your project, a source of inspiration, or simply as a quick way to get started. The following steps will guide you through setting up the project locally.
+
+#### 📚 Documentation
+In case you get stuck, we highly recommend checking out the documentation.
+- [LlamaIndex Documentation](https://developers.llamaindex.ai/python/workflows) - Learn more about LlamaIndex and its features
+- [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
+- [Composio Documentation](https://docs.composio.dev) - Learn about Composio's tool integrations
+- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
+
+#### 🧑‍💻 Vibe coding
+Plug-in these resources to let coding agents help you and our team!
+- [vibe-llama](https://github.com/run-llama/vibe-llama)
+- [Copilotkit MCP](https://docs.copilotkit.ai/vibe-coding-mcp)
+
+
+#### Prerequisites
+Before getting started, you'll need to the following.
+- Node.js 20+ 
+- Python 3.10+
 - OpenAI API Key (LlamaIndex agent; `agent/.env`) ([platform.openai.com/api-keys](https://platform.openai.com/api-keys))
 - Composio API Key & Config ID (external tool integrations; `agent/.env`) ([app.composio.dev/developers](https://app.composio.dev/developers))
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
@@ -33,115 +52,131 @@ https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
   - [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable)
   - [bun](https://bun.sh/)
 
-> **Note:** This repository ignores lock files (package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb) to avoid conflicts between different package managers. Each developer should generate their own lock file using their preferred package manager. After that, make sure to delete it from the .gitignore.
-
-## Getting Started
+#### Quickstart
 
 1. Install dependencies using your preferred package manager:
-```bash
-# Using pnpm (recommended)
-pnpm install
 
-# Using npm
-npm install
+    This will install both your Node and Python dependencies (using `uv`).
 
-# Using yarn
-yarn install
+    ```bash
+    # Using pnpm (recommended)
+    pnpm install
 
-# Using bun
-bun install
-```
+    # Using npm
+    npm install
 
-2. Install Python dependencies for the LlamaIndex agent:
-```bash
-# Using pnpm
-pnpm install:agent
+    # Using yarn
+    yarn install
 
-# Using npm
-npm run install:agent
+    # Using bun
+    bun install
+    ```
 
-# Using yarn
-yarn install:agent
+    > **Note:** This repository ignores lock files (package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lockb) to avoid conflicts between different package managers. Each developer should generate their own lock file using their preferred package manager. After that, make sure to delete it from the `.gitignore`.
 
-# Using bun
-bun run install:agent
-```
+3. Setup Googlesheets Integration
 
-> **Note:** This will automatically setup a `.venv` (virtual environment) inside the `agent` directory.  
->
-> To activate the virtual environment manually, you can run:
-> ```bash
-> source agent/.venv/bin/activate
-> ```
+    Navigate to https://app.composio.dev/developers, setup a Google Sheet integration and grab an API key.
 
-3. Set up your environment variables:
+    For the next step you'll need a Composio API key, auth config ID, and user ID.
 
-There are two `.env` files to configure:
+    <details>
 
-**Frontend environment variables** - Copy `.env.local.example` to `.env.local` in the root directory:
-```bash
-# .env.local
-COPILOT_CLOUD_PUBLIC_API_KEY="" # optional (for CopilotKit Cloud features)
-```
+    <summary>Show me how ->
+    
+    </summary>
 
-**Backend environment variables** - Copy `agent/.env.example` to `agent/.env`:
-```bash
-# OpenAI API key
-OPENAI_API_KEY=""
+    https://github.com/user-attachments/assets/159cec99-7ba2-4ee2-83dd-2d86e51afea1
 
-# Composio secrets
-COMPOSIO_API_KEY=""
-COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID=""
-COMPOSIO_USER_ID="default"
-```
+    </details>
 
-> **Note:** 
-> - You can get your Composio API key from [app.composio.dev](https://app.composio.dev)
-> - The OpenAI API key is required for the LlamaIndex agent to function
+4. Set up your environment variables:
 
-4. Start the development server:
-```bash
-# Using pnpm
-pnpm dev
+    There are two `.env` files to configure:
 
-# Using npm
-npm run dev
+    #### Backend
 
-# Using yarn
-yarn dev
+    Copy `agent/.env.example` to `agent/.env`:
 
-# Using bun
-bun run dev
-```
+    ```bash
+    # OpenAI API key
+    OPENAI_API_KEY=""
 
-This will start both the UI and agent servers concurrently.
+    # Composio secrets
+    COMPOSIO_API_KEY=""
+    COMPOSIO_GOOGLESHEETS_AUTH_CONFIG_ID=""
+    COMPOSIO_USER_ID="default"
+    ```
 
-## Getting Started with the Canvas
+    > **Note:** The OpenAI API key is required for the LlamaIndex agent to function
 
-Once the application is running, you can:
+    #### Frontend (optional)
 
-1. **Create Cards**: Use the "New Item" button or ask the AI to create cards
-   - "Create a new project"
-   - "Add an entity and a note"
-   - "Create a chart with sample metrics"
+    Copy `.env.local.example` to `.env` in the root directory:
 
-2. **Edit Cards**: Click on any field to edit directly, or ask the AI
-   - "Set the project field1 to 'Q1 Planning'"
-   - "Add a checklist item 'Review budget'"
-   - "Update the chart metrics"
+    ```bash
+    # .env.local
+    COPILOT_CLOUD_PUBLIC_API_KEY="" # optional (for CopilotKit Cloud features)
+    ```
 
-3. **Sync with Google Sheets**: Use the Google Sheets button or ask the AI
-   - "Create a new Google Sheet" - Creates a sheet for syncing canvas data
-   - "Sync all items to Google Sheets" - Syncs current canvas state to the sheet
-   - "Get the sheet URL" - Retrieves the Google Sheets link
+5. Start the development server:
+    ```bash
+    # Using pnpm
+    pnpm dev
 
-4. **Execute Plans**: Give the AI multi-step instructions
-   - "Create 3 projects with different priorities and add 2 checklist items to each"
-   - The AI will create a plan and execute it step by step with visual progress
+    # Using npm
+    npm run dev
 
-5. **View JSON**: Toggle between the visual canvas and JSON view using the button at the bottom
+    # Using yarn
+    yarn dev
 
-## Available Scripts
+    # Using bun
+    bun run dev
+    ```
+
+    This will start both the UI and agent servers concurrently.
+
+6. ✅ You're done!
+
+    Open http://localhost:3000 to use the starter and try it out!
+
+    <details>
+    
+    <summary>
+    Using the canvas starter-> 
+    
+    </summary>
+
+    Once the application is running, you can:
+
+    1. **Create Cards**: Use the "New Item" button or ask the AI to create cards
+    - "Create a new project"
+    - "Add an entity and a note"
+    - "Create a chart with sample metrics"
+
+    2. **Edit Cards**: Click on any field to edit directly, or ask the AI
+    - "Set the project field1 to 'Q1 Planning'"
+    - "Add a checklist item 'Review budget'"
+    - "Update the chart metrics"
+
+    3. **Sync with Google Sheets**: Use the Google Sheets button or ask the AI
+    - "Create a new Google Sheet" - Creates a sheet for syncing canvas data
+    - "Sync all items to Google Sheets" - Syncs current canvas state to the sheet
+    - "Get the sheet URL" - Retrieves the Google Sheets link
+
+    4. **Execute Plans**: Give the AI multi-step instructions
+    - "Create 3 projects with different priorities and add 2 checklist items to each"
+    - The AI will create a plan and execute it step by step with visual progress
+
+    5. **View JSON**: Toggle between the visual canvas and JSON view using the button at the bottom
+
+
+    </details>
+
+
+
+
+### Available Scripts
 The following scripts can also be run using your preferred package manager:
 - `dev` - Starts both UI and agent servers in development mode
 - `dev:debug` - Starts development servers with debug logging enabled
@@ -152,7 +187,11 @@ The following scripts can also be run using your preferred package manager:
 - `start` - Starts the production server
 - `lint` - Runs ESLint for code linting
 
-## Architecture Overview
+### Architecture Overview
+
+<details>
+
+<summary>High-level -></summary>
 
 ```mermaid
 graph TB
@@ -203,34 +242,11 @@ graph TB
     click UI "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx"
     click Agent "https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py"
 ```
+</details>
 
-### Frontend (Next.js + CopilotKit)
-The main UI component is in [`src/app/page.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx). It includes:
-- **Canvas Management**: Visual grid of cards with create, read, update, and delete operations
-- **State Synchronization**: Uses `useCoAgent` hook for real-time state sync with the agent
-- **Frontend Actions**: Exposed as tools to the AI agent via `useCopilotAction`
-- **Google Sheets Integration**: Dropdown menu for creating sheets and syncing data
-- **Plan Visualization**: Shows multi-step plan execution with progress indicators
-- **HITL (Tool-based)**: Uses `useCopilotAction` with `renderAndWaitForResponse` for disambiguation prompts (e.g., choosing an item or card type)
+<details>
 
-### Backend (LlamaIndex Agent)
-The agent logic is in [`agent/agent/agent.py`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py). It features:
-- **Workflow Context**: Uses LlamaIndex's Context for state management and event streaming
-- **Tool Integration**: Backend tools for planning, frontend tools integration via CopilotKit
-- **Composio Integration**: Leverages Composio for external service connections (Google Sheets, etc.)
-- **Strict Grounding**: Enforces data consistency by always using shared state as truth
-- **Loop Control**: Prevents infinite loops and redundant operations
-- **Planning System**: Can create and execute multi-step plans with status tracking
-- **FastAPI Router**: Uses `get_ag_ui_workflow_router` for seamless integration
-
-### Card Field Schema
-Each card type has specific fields defined in the agent:
-- **Project**: field1 (text), field2 (select), field3 (date), field4 (checklist)
-- **Entity**: field1 (text), field2 (select), field3 (tags), field3_options (available tags)
-- **Note**: field1 (textarea content)
-- **Chart**: field1 (array of metrics with label and value 0-100)
-
-### Data Flow
+<summary>Data flow -> </summary>
 
 ```mermaid
 sequenceDiagram
@@ -264,32 +280,150 @@ sequenceDiagram
     Note over UI,CK: Real-time bidirectional sync
     Note over Composio,GSheets: External tool integration
 ```
+#### Frontend (Next.js + CopilotKit)
+The main UI component is in [`src/app/page.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx). It includes:
+- **Canvas Management**: Visual grid of cards with create, read, update, and delete operations
+- **State Synchronization**: Uses `useCoAgent` hook for real-time state sync with the agent
+- **Frontend Actions**: Exposed as tools to the AI agent via `useCopilotAction`
+- **Google Sheets Integration**: Dropdown menu for creating sheets and syncing data
+- **Plan Visualization**: Shows multi-step plan execution with progress indicators
+- **HITL (Tool-based)**: Uses `useCopilotAction` with `renderAndWaitForResponse` for disambiguation prompts (e.g., choosing an item or card type)
 
-## Customization Guide
+#### Backend (LlamaIndex Agent)
+The agent logic is in [`agent/agent/agent.py`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py). It features:
+- **Workflow Context**: Uses LlamaIndex's Context for state management and event streaming
+- **Tool Integration**: Backend tools for planning, frontend tools integration via CopilotKit
+- **Composio Integration**: Leverages Composio for external service connections (Google Sheets, etc.)
+- **Strict Grounding**: Enforces data consistency by always using shared state as truth
+- **Loop Control**: Prevents infinite loops and redundant operations
+- **Planning System**: Can create and execute multi-step plans with status tracking
+- **FastAPI Router**: Uses `get_ag_ui_workflow_router` for seamless integration
+</details>
 
-### Adding New Card Types
+<details>
+
+<summary>Schema -></summary>
+
+#### Card Field Schema
+Each card type has specific fields defined in the agent:
+- **Project**: field1 (text), field2 (select), field3 (date), field4 (checklist)
+- **Entity**: field1 (text), field2 (select), field3 (tags), field3_options (available tags)
+- **Note**: field1 (textarea content)
+- **Chart**: field1 (array of metrics with label and value 0-100)
+
+</details>
+
+### Customization Guide
+
+<details>
+
+<summary>Adding New Card Types -></summary>
+
 1. Define the data schema in [`src/lib/canvas/types.ts`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/lib/canvas/types.ts)
 2. Add the card type to the `CardType` union
 3. Create rendering logic in [`src/components/canvas/CardRenderer.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/components/canvas/CardRenderer.tsx)
 4. Update the agent's field schema in [`agent/agent/agent.py`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/agent/agent/agent.py)
 5. Add corresponding frontend actions in [`src/app/page.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/page.tsx)
 
-### Modifying Existing Cards
+</details>
+
+<details>
+
+<summary>Modifying Existing Cards -></summary>
+
 - Field definitions are in the agent's FIELD_SCHEMA constant
 - UI components are in [`CardRenderer.tsx`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/components/canvas/CardRenderer.tsx)
 - Frontend actions follow the pattern: `set[Type]Field[Number]`
 
-### Styling
+</details>
+
+<details>
+
+<summary>Styling -></summary>
+
 - Global styles: [`src/app/globals.css`](https://github.com/CopilotKit/canvas-with-llamaindex/blob/main/src/app/globals.css)
 - Component styles use Tailwind CSS with shadcn/ui components
 - Theme colors can be modified via CSS custom properties
+- See CopilotKit's [customization docs](https://docs.copilotkit.ai/llamaindex/custom-look-and-feel/customize-built-in-ui-components) for the chat window
 
-## 📚 Documentation
+</details>
 
-- [LlamaIndex Documentation](https://developers.llamaindex.ai/python/workflows) - Learn more about LlamaIndex and its features
-- [CopilotKit Documentation](https://docs.copilotkit.ai) - Explore CopilotKit's capabilities
-- [Composio Documentation](https://docs.composio.dev) - Learn about Composio's tool integrations
-- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
+## Troubleshooting
+
+<details>
+
+<summary>Agent connection issues -></summary>
+
+If you see "I'm having trouble connecting to my tools", make sure:
+1. The LlamaIndex agent is running on port 9000 (check terminal output)
+2. Your OpenAI API key is set correctly in `agent/.env`
+3. Both servers started successfully (UI and agent)
+
+</details>
+
+<details>
+
+<summary>Port already in use -></summary>
+
+If you see "[Errno 48] Address already in use":
+1. The agent might still be running from a previous session
+2. Kill the process using the port: `lsof -ti:9000 | xargs kill -9`
+3. For the UI port: `lsof -ti:3000 | xargs kill -9`
+
+</details>
+
+<details>
+
+<summary>State synchronization issues -></summary>
+
+If the canvas and AI seem out of sync:
+1. Check the browser console for errors
+2. Ensure all frontend actions are properly registered
+3. Verify the agent is using the latest shared state (not cached values)
+
+</details>
+
+<details>
+
+<summary>Google Sheets integration issues -></summary>
+
+If Google Sheets sync is not working:
+1. Verify your Composio API key is set correctly in `agent/.env`
+2. Check if you need to authenticate with Google Sheets (the agent will provide an auth URL)
+3. Ensure the `COMPOSIO_USER_ID` is set (defaults to "default")
+4. For first-time setup, you may need to configure Google Sheets auth in your Composio dashboard
+
+</details>
+
+<details>
+
+<summary>Python dependencies -></summary>
+
+If you encounter Python import errors:
+```bash
+cd agent
+uv sync
+```
+
+</details>
+
+
+<details>
+
+<summary>Dependency conflicts -></summary>
+
+If issues persist, recreate the virtual environment:
+
+```bash
+cd agent
+rm -rf .venv
+uv venv
+uv sync
+```
+
+</details>
+
+---
 
 ## Contributing
 
@@ -298,50 +432,6 @@ Feel free to submit issues and enhancement requests! This starter is designed to
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Troubleshooting
-
-### Agent Connection Issues
-If you see "I'm having trouble connecting to my tools", make sure:
-1. The LlamaIndex agent is running on port 9000 (check terminal output)
-2. Your OpenAI API key is set correctly in `agent/.env`
-3. Both servers started successfully (UI and agent)
-
-### Port Already in Use
-If you see "[Errno 48] Address already in use":
-1. The agent might still be running from a previous session
-2. Kill the process using the port: `lsof -ti:9000 | xargs kill -9`
-3. For the UI port: `lsof -ti:3000 | xargs kill -9`
-
-### State Synchronization Issues
-If the canvas and AI seem out of sync:
-1. Check the browser console for errors
-2. Ensure all frontend actions are properly registered
-3. Verify the agent is using the latest shared state (not cached values)
-
-### Google Sheets Integration Issues
-If Google Sheets sync is not working:
-1. Verify your Composio API key is set correctly in `agent/.env`
-2. Check if you need to authenticate with Google Sheets (the agent will provide an auth URL)
-3. Ensure the `COMPOSIO_USER_ID` is set (defaults to "default")
-4. For first-time setup, you may need to configure Google Sheets auth in your Composio dashboard
-
-### Python Dependencies
-If you encounter Python import errors:
-```bash
-cd agent
-uv sync
-```
-
-### Dependency Conflicts
-If issues persist, recreate the virtual environment:
-```bash
-cd agent
-rm -rf .venv
-uv venv
-uv sync
-```
----
 
 > [!IMPORTANT]
 > Some features are still under active development and may not yet work as expected. If you encounter a problem using this template, please [report an issue](https://github.com/CopilotKit/canvas-with-llamaindex/issues/new/choose) to this repository.

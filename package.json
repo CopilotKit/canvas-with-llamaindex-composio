@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "install:agent": "cd agent && uv sync"
+    "install:agent": "cd agent && uv sync",
+    "postinstall": "npm run install:agent"
   },
   "dependencies": {
     "@ag-ui/llamaindex": "0.1.1",

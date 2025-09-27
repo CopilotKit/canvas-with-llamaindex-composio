@@ -1108,12 +1108,14 @@ export default function CopilotKitPage() {
             if (syncResponse.ok) {
               console.log("Successfully synced existing items to new sheet");
               // Set the newly created sheet as the sync target and update title/description
-              setState((prev) => ({ 
+              setState((prev) => ({
                 ...prev,
+                items: prev?.items || [],
+                itemsCreated: prev?.itemsCreated || 0,
                 globalTitle: result.title || title.trim(),
                 globalDescription: `Connected to Google Sheet: ${result.title || title.trim()}`,
                 syncSheetId: sheetId,
-                syncSheetName: "Sheet1" 
+                syncSheetName: "Sheet1"
               }));
             } else {
               console.warn("Failed to sync existing items to new sheet");
@@ -1314,6 +1316,31 @@ export default function CopilotKitPage() {
     "focus:ring-2 focus:ring-accent/50 focus:shadow-sm focus:bg-accent/10",
     "focus:shadow-accent focus:placeholder:text-accent/65 focus:text-accent",
   );
+
+  const sheetModalInputClasses = cn(
+    "w-full rounded-xl border border-border/80 bg-background px-3.5 py-2.5 text-sm text-foreground shadow-xs transition-all",
+    "placeholder:text-muted-foreground/70 focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none",
+    "disabled:cursor-not-allowed disabled:opacity-60"
+  );
+
+  const handleCloseSheetsModal = useCallback(() => {
+    if (isImporting || isCreatingSheet) {
+      return;
+    }
+    setShowSheetModal(false);
+    setImportError("");
+    setAvailableSheets([]);
+    setSelectedSheetName("");
+    setNewSheetTitle("");
+  }, [
+    isCreatingSheet,
+    isImporting,
+    setAvailableSheets,
+    setImportError,
+    setNewSheetTitle,
+    setSelectedSheetName,
+    setShowSheetModal,
+  ]);
 
   const [sheetId, setSheetId] = useState<string>('')
 
@@ -1523,165 +1550,175 @@ export default function CopilotKitPage() {
 
       {/* Google Sheets Selection Modal */}
       {showSheetModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Google Sheets Integration</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/75 px-4 py-10 backdrop-blur-sm sm:px-6"
+          onClick={handleCloseSheetsModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sheets-modal-title"
+        >
+          <div
+            className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-card shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-border/80 bg-muted px-6 py-5 sm:px-8">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">Connections</p>
+                <h2 id="sheets-modal-title" className="mt-1 text-lg font-semibold">Google Sheets</h2>
+                <p className="text-sm text-muted-foreground">Sync the canvas with a Sheet—create a new one or import an existing source.</p>
+              </div>
               <button
-                onClick={() => {
-                  setShowSheetModal(false);
-                  setImportError("");
-                  setAvailableSheets([]);
-                  setSelectedSheetName("");
-                  setNewSheetTitle("");
-                }}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={handleCloseSheetsModal}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-muted-foreground transition-colors hover:border-border hover:text-foreground"
                 disabled={isImporting || isCreatingSheet}
+                aria-label="Close sheets modal"
               >
-                ✕
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div className="flex gap-2 mb-4">
-                <Button 
-                  onClick={() => {
-                    if (newSheetTitle.trim()) {
-                      createNewSheet(newSheetTitle);
-                    }
-                  }}
-                  className="flex-1"
-                  disabled={isImporting || isCreatingSheet || !newSheetTitle.trim()}
-                >
-                  {isCreatingSheet ? "Creating..." : "📄 Create New Sheet"}
-                </Button>
-              </div>
-              
-              <input
-                type="text"
-                placeholder="New sheet title (e.g., 'My Canvas Data')"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={newSheetTitle}
-                onChange={(e) => setNewSheetTitle(e.target.value)}
-                disabled={isImporting || isCreatingSheet}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newSheetTitle.trim()) {
-                    createNewSheet(newSheetTitle);
-                  }
-                }}
-              />
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-2 text-gray-500">or</span>
-                </div>
-              </div>
-              
-              <p className="text-sm text-gray-600">
-                Enter an existing Google Sheets ID or URL to import data directly into your canvas. Each row will become a card with intelligent type detection.
-              </p>
-              
-              {importError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600">{importError}</p>
-                </div>
-              )}
-              
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Sheet ID or https://docs.google.com/spreadsheets/d/..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  id="sheet-id-input"
-                  disabled={isImporting || isCreatingSheet}
-                  value={sheetId}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSheetId(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.target as HTMLInputElement;
-                      importFromSheet(input.value);
-                    }
-                  }}
-                />
-                
-                <div className="flex gap-2">
-                   <Button 
-                     onClick={() => {
-                       const input = document.getElementById('sheet-id-input') as HTMLInputElement;
-                       if (input?.value) {
-                         fetchAvailableSheets(input.value);
-                       }
-                     }}
-                     variant="outline"
-                     className="flex-1 disabled:hover:bg-background disabled:hover:text-current"
-                     disabled={isImporting || isCreatingSheet || !sheetId}
-                   >
-                     List Sheets
-                   </Button>
-                </div>
-                
-                {(
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Select Sheet (optional - defaults to first sheet):
-                      {availableSheets.length > 0 && (
-                        <span className="ml-2 text-xs text-green-600">✓ {availableSheets.length} sheet{availableSheets.length !== 1 ? 's' : ''} found</span>
-                      )}
-                    </label>
-                    <select
-                      value={selectedSheetName}
-                      onChange={(e) => setSelectedSheetName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      disabled={isImporting || isCreatingSheet}
-                    >
-                      <option value="">
-                        {availableSheets.length > 0 ? "-- Default (First Sheet) --" : "-- Click 'List Sheets' to see available sheets --"}
-                      </option>
-                      {availableSheets.map((sheetName, index) => (
-                        <option key={index} value={sheetName}>
-                          {sheetName}
-                        </option>
-                      ))}
-                    </select>
+
+            <div className="px-6 pb-6 sm:px-8 sm:pb-8">
+              <div className="mt-6 space-y-6">
+                <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/60 px-5 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-sm font-medium text-foreground">Create a fresh Sheet</label>
+                    <span className="text-xs font-medium text-muted-foreground/80">Sync starts immediately</span>
                   </div>
-                )}
-                
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => {
-                      const input = document.getElementById('sheet-id-input') as HTMLInputElement;
-                      if (input) {
-                        importFromSheet(input.value);
-                      }
-                    }}
-                    className="flex-1"
-                    disabled={isImporting || isCreatingSheet || !availableSheets.length}
-                  >
-                    {isImporting ? "Importing..." : "Import Sheet"}
-                  </Button>
-                  <Button 
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="E.g. Product Roadmap"
+                      className={sheetModalInputClasses}
+                      value={newSheetTitle}
+                      onChange={(e) => setNewSheetTitle(e.target.value)}
+                      disabled={isImporting || isCreatingSheet}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newSheetTitle.trim()) {
+                          createNewSheet(newSheetTitle);
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={() => {
+                        if (newSheetTitle.trim()) {
+                          createNewSheet(newSheetTitle);
+                        }
+                      }}
+                      className="w-full"
+                      variant="secondary"
+                      disabled={isImporting || isCreatingSheet || !newSheetTitle.trim()}
+                    >
+                      {isCreatingSheet ? "Creating…" : "Create & Connect"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4 rounded-2xl border border-dashed border-border/70 bg-card px-5 py-5">
+                  <div className="text-sm text-foreground">
+                    <span className="font-medium">Import an existing Sheet</span>
+                    <p className="mt-1 text-xs text-muted-foreground">Paste a Sheet link or ID. We’ll hydrate the canvas and keep the connection live.</p>
+                  </div>
+
+                  {importError && (
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                      {importError}
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Sheet ID or https://docs.google.com/spreadsheets/d/..."
+                      className={sheetModalInputClasses}
+                      id="sheet-id-input"
+                      disabled={isImporting || isCreatingSheet}
+                      value={sheetId}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSheetId(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const input = e.target as HTMLInputElement;
+                          importFromSheet(input.value);
+                        }
+                      }}
+                    />
+
+                    <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+                      <Button
+                        onClick={() => {
+                          const input = document.getElementById("sheet-id-input") as HTMLInputElement;
+                          if (input?.value) {
+                            fetchAvailableSheets(input.value);
+                          }
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                        disabled={isImporting || isCreatingSheet || !sheetId}
+                      >
+                        List worksheets
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          const input = document.getElementById("sheet-id-input") as HTMLInputElement;
+                          if (input) {
+                            importFromSheet(input.value);
+                          }
+                        }}
+                        className="flex-1"
+                        variant="secondary"
+                        disabled={isImporting || isCreatingSheet || !availableSheets.length}
+                      >
+                        {isImporting ? "Importing…" : "Import to Canvas"}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-foreground">
+                        Sheet tab
+                        {availableSheets.length > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                            {availableSheets.length} found
+                          </span>
+                        )}
+                      </label>
+                      <select
+                        value={selectedSheetName}
+                        onChange={(e) => setSelectedSheetName(e.target.value)}
+                        className={cn(sheetModalInputClasses, "pr-8")}
+                        disabled={isImporting || isCreatingSheet}
+                      >
+                        <option value="">
+                          {availableSheets.length > 0 ? "Use first worksheet" : "List worksheets to choose a tab"}
+                        </option>
+                        {availableSheets.map((sheetName, index) => (
+                          <option key={index} value={sheetName}>
+                            {sheetName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border/70 bg-muted px-5 py-4 text-xs text-muted-foreground">
+                  <p><span className="font-medium text-foreground">Heads up:</span> New Sheets open in a new tab. If you import, ensure Composio has access to the document.</p>
+                  <p className="mt-2">We automatically map rows into projects, entities, notes, or charts so your canvas stays structured.</p>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Button
                     variant="outline"
-                    onClick={() => {
-                      setShowSheetModal(false);
-                      setImportError("");
-                      setAvailableSheets([]);
-                      setSelectedSheetName("");
-                      setNewSheetTitle("");
-                    }}
-                    className="flex-1"
+                    className="sm:w-fit"
+                    onClick={handleCloseSheetsModal}
                     disabled={isImporting || isCreatingSheet}
                   >
-                    Cancel
+                    Close
                   </Button>
+                  {viewState.syncSheetId && (
+                    <span className="text-xs text-muted-foreground">
+                      Currently linked to <span className="font-medium text-foreground">{viewState.syncSheetName || "Sheet1"}</span>
+                    </span>
+                  )}
                 </div>
-              </div>
-              
-              <div className="text-xs text-gray-500 space-y-1">
-                <p>📄 <strong>Create New:</strong> Creates a fresh sheet and opens it in a new tab. Current canvas items will be synced automatically.</p>
-                <p>💡 <strong>Import Existing:</strong> Make sure your sheet is publicly accessible or you're signed in to Composio with the right Google account.</p>
-                <p>🤖 The system will analyze your data and create the best card types (projects, entities, notes, or charts).</p>
               </div>
             </div>
           </div>
@@ -1690,38 +1727,41 @@ export default function CopilotKitPage() {
 
       {/* Format Warning Modal */}
       {showFormatWarning && formatWarningDetails && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-orange-600">⚠️ Format Mismatch Warning</h2>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/85 px-4 py-8 backdrop-blur-sm sm:px-6">
+          <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 shadow-2xl sm:p-7">
+            <div className="flex items-start justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-destructive/80">Import check</p>
+                <h2 className="mt-1 text-lg font-semibold text-destructive">Format mismatch</h2>
+                <p className="text-sm text-destructive/80">Replacing your canvas will overwrite existing cards with what’s in the Sheet.</p>
+              </div>
               <button
                 onClick={() => {
                   setShowFormatWarning(false);
                   setFormatWarningDetails(null);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-transparent text-destructive/70 transition-colors hover:border-destructive/40 hover:text-destructive"
+                aria-label="Dismiss format warning"
               >
-                ✕
+                <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div className="p-4 bg-orange-50 border border-orange-200 rounded-md">
-                <p className="text-sm text-orange-800 mb-2">
-                  <strong>The selected sheet contains data that may not match your current canvas format.</strong>
-                </p>
-                <div className="text-xs text-orange-700 space-y-1">
-                  <p>• <strong>Sheet:</strong> {formatWarningDetails.existingFormat}</p>
-                  <p>• <strong>Canvas:</strong> {formatWarningDetails.canvasFormat}</p>
+
+            <div className="mt-6 space-y-5">
+              <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                <p className="font-medium">Sheet details</p>
+                <div className="mt-2 space-y-1 text-xs">
+                  <p><span className="font-semibold uppercase tracking-wide">Sheet</span>: {formatWarningDetails.existingFormat}</p>
+                  <p><span className="font-semibold uppercase tracking-wide">Canvas</span>: {formatWarningDetails.canvasFormat}</p>
                 </div>
               </div>
-              
-              <p className="text-sm text-gray-600">
-                Importing will completely replace your current canvas data with the sheet contents. 
-                Your current canvas items will be lost unless you've saved them elsewhere.
+
+              <p className="text-sm text-muted-foreground">
+                Importing will completely replace your current canvas data with the sheet contents. Your existing cards will be lost unless they’re saved elsewhere.
               </p>
-              
-              <div className="flex gap-2">
-                <Button 
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                <Button
                   onClick={() => {
                     setShowFormatWarning(false);
                     const details = formatWarningDetails;
@@ -1732,9 +1772,9 @@ export default function CopilotKitPage() {
                   variant="destructive"
                   className="flex-1"
                 >
-                  ⚠️ Import Anyway (Replace Canvas)
+                  Replace canvas with sheet
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => {
                     setShowFormatWarning(false);
@@ -1742,12 +1782,13 @@ export default function CopilotKitPage() {
                   }}
                   className="flex-1"
                 >
-                  Cancel
+                  Keep current canvas
                 </Button>
               </div>
-              
-              <div className="text-xs text-gray-500">
-                <p>💡 <strong>Tip:</strong> Consider creating a new sheet or backing up your current canvas data before importing.</p>
+
+              <div className="rounded-2xl border border-border/70 bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">Tip</p>
+                <p className="mt-1">Consider creating a new Sheet or exporting your canvas JSON before importing if you might need to roll back.</p>
               </div>
             </div>
           </div>
@@ -1756,6 +1797,3 @@ export default function CopilotKitPage() {
     </div>
   );
 }
-
-
-
