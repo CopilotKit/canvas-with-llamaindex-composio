@@ -1,11 +1,15 @@
-# Fullstack Agents Hackathon Starter
+# Pitch Platform - AI-Powered Sales Training
 
-Welcome to the Fullstack Agents hackathon! This starter gives you a complete AI-powered canvas application with real-world integrations. Utilizing [LlamaIndex](https://developers.llamaindex.ai), [Composio](https://docs.composio.dev), and [CopilotKit](https://docs.copilotkit.ai). 
+An intelligent platform where sellers practice pitching to companies with real-time AI coaching and performance assessment. Built with [LlamaIndex](https://developers.llamaindex.ai), [Composio](https://docs.composio.dev), and [CopilotKit](https://docs.copilotkit.ai).
 
-## About this starter
-This is a starter template for building AI-powered canvas applications using LlamaIndex, CopilotKit, and Composio. It provides a modern Next.js application with an integrated LlamaIndex agent that manages a visual canvas of interactive cards with real-time AI synchronization and external tool integrations (Google Sheets, for this example) through Composio.
+## About this Platform
+This is an AI-powered pitch training platform that helps sellers improve their sales skills through:
+- **Interactive Pitch Sessions**: Practice pitching to real companies with AI guidance
+- **Real-time Coaching**: Get instant feedback and suggestions during your pitch
+- **Performance Assessment**: Buyers evaluate sellers using a comprehensive scoring system
+- **Company Intelligence**: Access detailed information about target companies
 
-This is an example application that we built to help you get started quickly. Everything you see can be customized, replaced, augmented or built upon.
+Built on the CopilotKit canvas starter template, this platform demonstrates how AI can transform sales training and assessment.
 
 https://github.com/user-attachments/assets/2a4ec718-b83b-4968-9cbe-7c1fe082e958
 
